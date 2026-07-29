@@ -1,0 +1,387 @@
+{
+  "version": 1,
+  "header": {
+    "verse": "Verse 1",
+    "title": "Notation Demo",
+    "artist": "FlowScript",
+    "year": "2026",
+    "timestamp": "0:42"
+  },
+  "beatsPerBar": 4,
+  "startBar": 1,
+  "defaultDivision": 4,
+  "ruler": "beats",
+  "rulerLabel": true,
+  "rowGap": 20,
+  "font": "sans",
+  "lyricSize": 15,
+  "beatWidth": 240,
+  "palette": [
+    "#C9C9C9",
+    "#FFE44D",
+    "#9BE89B",
+    "#7FE3F0",
+    "#FFA6C9",
+    "#FFB870",
+    "#C3A6FF",
+    "#C6EB5C",
+    "#FF8A80",
+    "#8FB8FF",
+    "#7FE0C4",
+    "#FFCBA4",
+    "#F09BE0",
+    "#C8C87A",
+    "#D9BE93",
+    "#FFFFFF"
+  ],
+  "highlightPalette": [
+    "#FBD9D9",
+    "#FBDCC0",
+    "#FBF3C4",
+    "#D8ECD8",
+    "#D0EDE9",
+    "#D6E4F7",
+    "#E4DAF5",
+    "#E6E6E6"
+  ],
+  "bars": [
+    {
+      "id": "bar-ms6gdv8t-1",
+      "divisions": [
+        4,
+        4,
+        4,
+        4
+      ],
+      "slots": {
+        "0:0": {
+          "text": "Ev-",
+          "circle": "large",
+          "color": 0
+        },
+        "0:1": {
+          "text": "'ry",
+          "circle": "small",
+          "color": 0
+        },
+        "0:2": {
+          "text": "sing-",
+          "circle": "large",
+          "color": 0
+        },
+        "0:3": {
+          "text": "le",
+          "circle": "small",
+          "color": 0
+        },
+        "1:0": {
+          "text": "syl-",
+          "circle": "large",
+          "color": 0
+        },
+        "1:1": {
+          "text": "la-",
+          "circle": "small",
+          "color": 0
+        },
+        "1:2": {
+          "text": "ble",
+          "circle": "small",
+          "color": 0
+        },
+        "1:3": {
+          "text": "is",
+          "circle": "small",
+          "color": 0
+        },
+        "2:1": {
+          "text": "land-",
+          "circle": "large",
+          "color": 1,
+          "tie": true
+        },
+        "2:2": {
+          "text": "ing",
+          "circle": "small",
+          "color": 1
+        },
+        "2:3": {
+          "text": "on",
+          "circle": "small",
+          "color": 0
+        },
+        "3:0": {
+          "text": "a",
+          "circle": "small",
+          "color": 0
+        },
+        "3:1": {
+          "text": "grid",
+          "circle": "large",
+          "color": 3
+        }
+      }
+    },
+    {
+      "id": "bar-ms6gdv8t-2",
+      "divisions": [
+        4,
+        4,
+        4,
+        4
+      ],
+      "slots": {
+        "0:0": {
+          "text": "Map-",
+          "circle": "large",
+          "color": 1,
+          "tie": true
+        },
+        "0:1": {
+          "text": "ping",
+          "circle": "small",
+          "color": 1
+        },
+        "0:2": {
+          "text": "out",
+          "circle": "large",
+          "color": 0
+        },
+        "0:3": {
+          "text": "the",
+          "circle": "small",
+          "color": 0
+        },
+        "1:0": {
+          "text": "rhy-",
+          "circle": "large",
+          "color": 0
+        },
+        "1:1": {
+          "text": "thm",
+          "circle": "small",
+          "color": 0
+        },
+        "1:2": {
+          "text": "of",
+          "circle": "small",
+          "color": 0
+        },
+        "1:3": {
+          "text": "the",
+          "circle": "small",
+          "color": 0
+        },
+        "2:0": {
+          "text": "phras-",
+          "circle": "large",
+          "color": 4,
+          "tie": true
+        },
+        "2:1": {
+          "text": "es",
+          "circle": "small",
+          "color": 4
+        },
+        "2:2": {
+          "text": "that",
+          "circle": "small",
+          "color": 0
+        },
+        "2:3": {
+          "text": "you",
+          "circle": "small",
+          "color": 0
+        },
+        "3:0": {
+          "text": "hid",
+          "circle": "large",
+          "color": 3
+        }
+      }
+    },
+    {
+      "id": "bar-ms6gdv8t-3",
+      "divisions": [
+        4,
+        4,
+        4,
+        4
+      ],
+      "slots": {
+        "0:0": {
+          "text": "Cir-",
+          "circle": "large",
+          "color": 0
+        },
+        "0:1": {
+          "text": "cle",
+          "circle": "small",
+          "color": 0
+        },
+        "0:2": {
+          "text": "where",
+          "circle": "large",
+          "color": 0
+        },
+        "0:3": {
+          "text": "the",
+          "circle": "small",
+          "color": 0
+        },
+        "1:0": {
+          "text": "stress-",
+          "circle": "large",
+          "color": 4,
+          "tie": true
+        },
+        "1:1": {
+          "text": "es",
+          "circle": "small",
+          "color": 4
+        },
+        "1:2": {
+          "text": "fall",
+          "circle": "large",
+          "color": 0
+        },
+        "2:0": {
+          "text": "and",
+          "circle": "small",
+          "color": 0
+        },
+        "2:1": {
+          "text": "col-",
+          "circle": "large",
+          "color": 0
+        },
+        "2:2": {
+          "text": "or",
+          "circle": "small",
+          "color": 0
+        },
+        "2:3": {
+          "text": "in",
+          "circle": "small",
+          "color": 0
+        },
+        "3:0": {
+          "text": "the",
+          "circle": "small",
+          "color": 0
+        },
+        "3:1": {
+          "text": "rhyme",
+          "circle": "large",
+          "color": 2
+        }
+      }
+    },
+    {
+      "id": "bar-ms6gdv8t-4",
+      "divisions": [
+        4,
+        4,
+        4,
+        4
+      ],
+      "slots": {
+        "0:0": {
+          "text": "Now",
+          "circle": "large",
+          "color": 0
+        },
+        "0:1": {
+          "text": "the",
+          "circle": "small",
+          "color": 0
+        },
+        "0:2": {
+          "text": "shape",
+          "circle": "large",
+          "color": 0
+        },
+        "0:3": {
+          "text": "of",
+          "circle": "small",
+          "color": 0
+        },
+        "1:0": {
+          "text": "ev-",
+          "circle": "large",
+          "color": 0
+        },
+        "1:1": {
+          "text": "'ry",
+          "circle": "small",
+          "color": 0
+        },
+        "1:2": {
+          "text": "phrase",
+          "circle": "large",
+          "color": 0
+        },
+        "1:3": {
+          "text": "is",
+          "circle": "small",
+          "color": 0
+        },
+        "2:0": {
+          "text": "ob-",
+          "circle": "large",
+          "color": 0
+        },
+        "2:1": {
+          "text": "vi-",
+          "circle": "small",
+          "color": 0
+        },
+        "2:2": {
+          "text": "ous",
+          "circle": "small",
+          "color": 0
+        },
+        "2:3": {
+          "text": "in",
+          "circle": "small",
+          "color": 0
+        },
+        "3:0": {
+          "text": "time",
+          "circle": "large",
+          "color": 2
+        }
+      }
+    }
+  ],
+  "highlights": [
+    {
+      "id": "hl-ms6gisea-4177",
+      "color": 0,
+      "start": {
+        "bar": 0,
+        "beat": 0,
+        "sub": 0
+      },
+      "end": {
+        "bar": 1,
+        "beat": 3,
+        "sub": 0
+      }
+    },
+    {
+      "id": "hl-ms6gisqx-4200",
+      "color": 3,
+      "start": {
+        "bar": 2,
+        "beat": 0,
+        "sub": 0
+      },
+      "end": {
+        "bar": 3,
+        "beat": 3,
+        "sub": 0
+      }
+    }
+  ]
+}
