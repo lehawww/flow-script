@@ -1,0 +1,35 @@
+{
+  "name": "flowscript",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Notate rap flow on a beat ruler — syllable placement, stress, rhyme and phrase structure.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lehawww/flow-script.git"
+  },
+  "homepage": "https://lehawww.github.io/flow-script/",
+  "bugs": {
+    "url": "https://github.com/lehawww/flow-script/issues"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "build:standalone": "npm run build && node scripts/build-standalone.mjs",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --pretty"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
+  }
+}

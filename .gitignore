@@ -1,0 +1,9 @@
+node_modules
+dist
+standalone
+.DS_Store
+*.local
+tsconfig.tsbuildinfo
+
+# Claude Code local settings can contain machine-specific permissions
+.claude/settings.local.json

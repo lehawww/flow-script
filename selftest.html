@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>FlowScript — self test</title>
+    <style>
+      body { font: 13px ui-monospace, Menlo, monospace; padding: 20px; }
+      .pass { color: #15803d; }
+      .fail { color: #b91c1c; font-weight: 700; }
+      h1 { font-size: 15px; }
+    </style>
+  </head>
+  <body>
+    <h1>FlowScript self test</h1>
+    <p>Checks the pure logic that a save/load cycle depends on. Run with <code>npm run dev</code> and open <code>/selftest.html</code>.</p>
+    <div id="out"></div>
+
+    <script type="module">
+      import {
+        coerceSong, newSong, makeBar, allSlotRefs, slotKey, headerLine, NOTCH_LEVELS,
+        comparePos, normalizeRange, MIN_LYRIC_SIZE, MAX_LYRIC_SIZE, MIN_BEAT_WIDTH, MAX_BEAT_WIDTH, MIN_ROW_GAP, MAX_ROW_GAP,
+      } from '/src/model.ts'
+      import { computeLayout, slotAtX, slotStartX, slotEndX } from '/src/layout.ts'
+      import {
+        normalizeHex, coercePalette, rhymeFill, phraseFill, swatchLabel,
+        DEFAULT_PALETTE, DEFAULT_HIGHLIGHTS, defaultPalette, PALETTE_SIZE, HIGHLIGHT_SIZE,
+      } from '/src/palette.ts'
+
+      const out = document.getElementById('out')
+      let failures = 0
+
+      function check(name, fn) {
+        let ok = false
+        let detail = ''
+        try {
+          const r = fn()
+          ok = r === true
+          if (!ok) detail = ' — ' + String(r)
+        } catch (err) {
+          detail = ' — threw: ' + err.message
+        }
+        if (!ok) failures++
+        const div = document.createElement('div')
+        div.className = ok ? 'pass' : 'fail'
+        div.textContent = (ok ? '✓ ' : '✗ ') + name + detail
+        out.appendChild(div)
+      }
+
+      // Key order is not part of the format, so normalise before comparing.
+      const stable = (v) =>
+        JSON.stringify(v, (_k, val) =>
+          val && typeof val === 'object' && !Array.isArray(val)
+            ? Object.fromEntries(Object.entries(val).sort(([a], [b]) => (a < b ? -1 : 1)))
+            : val,
+        )
+      const eq = (a, b) => (stable(a) === stable(b) ? true : `${stable(a)}\n  !==\n  ${stable(b)}`)
+
+      /* ---- round trip ---- */
+
+      const song = newSong(3)
+      song.header = { verse: 'Verse 2', title: 'Test Song', artist: 'Artist', year: '1992', timestamp: '1:04' }
+      song.startBar = 9
+      song.bars[0].divisions[2] = 3
+      song.bars[0].divisions[3] = 8
+      song.bars[0].slots[slotKey(0, 0)] = { text: 'I', circle: 'large', color: 1, tie: true }
+      song.bars[0].slots[slotKey(1, 2)] = { text: 'got', circle: 'small', color: 1, tdx: -4, tdy: 6 }
+      song.bars[1].divisions[3] = 8
+      song.bars[1].slots[slotKey(3, 7)] = { text: 'y.', circle: 'large' }
+      song.highlights.push({
+        id: 'hl-1',
+        color: 2,
+        start: { bar: 0, beat: 2, sub: 1 },
+        end: { bar: 2, beat: 1, sub: 2 },
+      })
+
+      const roundTripped = coerceSong(JSON.parse(JSON.stringify(song)))
+      check('round trip preserves the whole document', () => eq(roundTripped, song))
+      check('round trip is stable a second time', () => eq(coerceSong(JSON.parse(JSON.stringify(roundTripped))), song))
+
+      /* ---- repair of damaged / partial files ---- */
+
+      check('rejects non-songs', () => {
+        try { coerceSong({ nope: 1 }); return 'did not throw' } catch { return true }
+      })
+
+      check('drops slots outside the bar length', () => {
+        const bad = JSON.parse(JSON.stringify(song))
+        bad.bars[0].slots['9:0'] = { text: 'nope' }
+        bad.bars[0].slots['0:99'] = { text: 'nope' }
+        const fixed = coerceSong(bad)
+        return eq(Object.keys(fixed.bars[0].slots).sort(), ['0:0', '1:2'])
+      })
+
+      check('fills in a missing divisions array', () => {
+        const bad = JSON.parse(JSON.stringify(song))
+        delete bad.bars[1].divisions
+        return eq(coerceSong(bad).bars[1].divisions, [4, 4, 4, 4])
+      })
+
+      check('clamps highlights to the bars that exist', () => {
+        const bad = JSON.parse(JSON.stringify(song))
+        bad.highlights[0].end.bar = 99
+        return coerceSong(bad).highlights[0].end.bar === 2 ? true : 'not clamped'
+      })
+
+      check('clamps a highlight edge to the beat’s division', () => {
+        const bad = JSON.parse(JSON.stringify(song))
+        bad.highlights[0].start.sub = 99 // beat 2 of bar 0 is divided into 3
+        return coerceSong(bad).highlights[0].start.sub === 2 ? true : 'not clamped'
+      })
+
+      // Highlights were beat-granular before subdivision ranges existed.
+      check('migrates a beat-granular highlight to cover whole beats', () => {
+        const old = JSON.parse(JSON.stringify(song))
+        old.highlights = [{ id: 'old', color: 0, start: { bar: 0, beat: 0 }, end: { bar: 0, beat: 3 } }]
+        const h = coerceSong(old).highlights[0]
+        // bar 0 beat 3 is divided into 8, so the end expands to sub 7
+        return eq([h.start, h.end], [{ bar: 0, beat: 0, sub: 0 }, { bar: 0, beat: 3, sub: 7 }])
+      })
+
+      /* ---- subdivision ranges ---- */
+
+      check('comparePos orders bar, then beat, then sub', () => {
+        const p = (bar, beat, sub) => ({ bar, beat, sub })
+        return comparePos(p(0, 0, 1), p(0, 0, 2)) < 0 &&
+          comparePos(p(0, 1, 0), p(0, 0, 3)) > 0 &&
+          comparePos(p(1, 0, 0), p(0, 3, 3)) > 0 &&
+          comparePos(p(2, 1, 1), p(2, 1, 1)) === 0
+          ? true
+          : 'wrong ordering'
+      })
+
+      check('normalizeRange swaps a backwards drag', () => {
+        const a = { bar: 1, beat: 2, sub: 3 }
+        const b = { bar: 1, beat: 0, sub: 1 }
+        return eq(normalizeRange(a, b), { start: b, end: a })
+      })
+
+      check('a highlight can start and end mid-beat', () => {
+        const s = newSong(1)
+        const l = computeLayout(s, 1)
+        const row = l.bars[0]
+        // beat 0 divided into 4: from sub 1 to sub 3 spans three 16th cells
+        const x = slotStartX(row, 0, 1)
+        const x2 = slotEndX(row, 0, 3)
+        const cell = l.m.pxPerBeat / 4
+        return Math.abs(x - (row.x0 + cell)) < 0.001 && Math.abs(x2 - x - cell * 3) < 0.001
+          ? true
+          : `x=${x} x2=${x2} cell=${cell}`
+      })
+
+      check('a whole-beat range still lands on the beat edges', () => {
+        const s = newSong(1)
+        const l = computeLayout(s, 1)
+        const row = l.bars[0]
+        return Math.abs(slotStartX(row, 1, 0) - row.beatEdges[1]) < 0.001 &&
+          Math.abs(slotEndX(row, 1, 3) - row.beatEdges[2]) < 0.001
+          ? true
+          : 'edges moved'
+      })
+
+      check('slotEndX never runs past the end of the bar', () => {
+        const s = newSong(1)
+        const l = computeLayout(s, 1)
+        const row = l.bars[0]
+        return slotEndX(row, 3, 3) <= row.x1 + 0.001 ? true : 'overran the bar'
+      })
+
+      check('slotAtX resolves the subdivision under the pointer', () => {
+        const s = newSong(1)
+        s.bars[0].divisions[0] = 3
+        const l = computeLayout(s, 1)
+        const row = l.bars[0]
+        const cell = l.m.pxPerBeat / 3
+        return eq(
+          [
+            slotAtX(row, row.x0 + 1),
+            slotAtX(row, row.x0 + cell + 1),
+            slotAtX(row, row.x0 + l.m.pxPerBeat + 1),
+          ],
+          [{ beat: 0, sub: 0 }, { beat: 0, sub: 1 }, { beat: 1, sub: 0 }],
+        )
+      })
+
+      check('slotAtX clamps outside the bar', () => {
+        const l = computeLayout(newSong(1), 1)
+        const row = l.bars[0]
+        return eq([slotAtX(row, -500), slotAtX(row, row.x1 + 500)], [
+          { beat: 0, sub: 0 },
+          { beat: 3, sub: 3 },
+        ])
+      })
+
+      check('an edge on a vanished subdivision falls back inside the beat', () => {
+        const s = newSong(1)
+        s.bars[0].divisions[2] = 3
+        const l = computeLayout(s, 1)
+        const row = l.bars[0]
+        // sub 3 no longer exists in a beat divided into 3
+        return slotEndX(row, 2, 3) <= row.beatEdges[3] + 0.001 ? true : 'ran past the beat'
+      })
+
+      check('keeps startBar 0', () => coerceSong({ ...song, startBar: 0 }).startBar === 0 || 'lost zero')
+
+      /* ---- color palettes ---- */
+
+      check('custom colors survive a round trip', () => {
+        const s = newSong(1)
+        s.palette[1] = '#123456'
+        s.highlightPalette[0] = '#ABCDEF'
+        const back = coerceSong(JSON.parse(JSON.stringify(s)))
+        return back.palette[1] === '#123456' && back.highlightPalette[0] === '#ABCDEF'
+          ? true
+          : `${back.palette[1]} / ${back.highlightPalette[0]}`
+      })
+
+      // Files written before palettes were editable carry no palette at all.
+      check('a file with no palette falls back to the built-in colors', () => {
+        const s = newSong(1)
+        const raw = JSON.parse(JSON.stringify(s))
+        delete raw.palette
+        delete raw.highlightPalette
+        const back = coerceSong(raw)
+        return eq([back.palette, back.highlightPalette], [
+          DEFAULT_PALETTE.map((c) => c.fill),
+          DEFAULT_HIGHLIGHTS.map((c) => c.fill),
+        ])
+      })
+
+      check('palette length is pinned so color indices stay valid', () => {
+        const raw = { ...JSON.parse(JSON.stringify(newSong(1))), palette: ['#000000'] }
+        const back = coerceSong(raw)
+        return back.palette.length === PALETTE_SIZE &&
+          back.highlightPalette.length === HIGHLIGHT_SIZE &&
+          back.palette[0] === '#000000' &&
+          back.palette[1] === DEFAULT_PALETTE[1].fill
+          ? true
+          : `len ${back.palette.length}`
+      })
+
+      check('garbage color values fall back per slot', () => {
+        const raw = {
+          ...JSON.parse(JSON.stringify(newSong(1))),
+          palette: ['not-a-color', '#GGG', 42, '#abc'],
+        }
+        const back = coerceSong(raw)
+        return back.palette[0] === DEFAULT_PALETTE[0].fill &&
+          back.palette[1] === DEFAULT_PALETTE[1].fill &&
+          back.palette[2] === DEFAULT_PALETTE[2].fill &&
+          back.palette[3] === '#AABBCC'
+          ? true
+          : JSON.stringify(back.palette.slice(0, 4))
+      })
+
+      check('normalizeHex accepts shorthand, bare and mixed case', () =>
+        eq(
+          ['#abc', 'abc', '#AaBbCc', 'FFF', '  #123456  '].map((v) => normalizeHex(v, '#000000')),
+          ['#AABBCC', '#AABBCC', '#AABBCC', '#FFFFFF', '#123456'],
+        ))
+
+      check('normalizeHex rejects anything else', () =>
+        eq(
+          [null, undefined, '', '#12345', 'red', 'rgb(1,2,3)', '#1234567'].map((v) =>
+            normalizeHex(v, '#ABCDEF'),
+          ),
+          Array(7).fill('#ABCDEF'),
+        ))
+
+      check('coercePalette never returns holes', () => {
+        const p = coercePalette(undefined, DEFAULT_PALETTE)
+        return p.length === PALETTE_SIZE && p.every((c) => /^#[0-9A-F]{6}$/.test(c))
+          ? true
+          : JSON.stringify(p)
+      })
+
+      check('fills read from the song palette, not the defaults', () => {
+        const p = defaultPalette()
+        p[2] = '#001122'
+        return rhymeFill(p, 2) === '#001122' && rhymeFill(p, undefined) === p[0]
+          ? true
+          : rhymeFill(p, 2)
+      })
+
+      check('an out-of-range color index still renders something', () =>
+        rhymeFill(defaultPalette(), 99) === DEFAULT_PALETTE[0].fill &&
+        phraseFill(DEFAULT_HIGHLIGHTS.map((c) => c.fill), 99) === DEFAULT_HIGHLIGHTS[0].fill
+          ? true
+          : 'no fallback')
+
+      check('swatch keeps its name until it is customised', () => {
+        const p = defaultPalette()
+        const named = swatchLabel(p, 1, DEFAULT_PALETTE)
+        p[1] = '#101010'
+        return named === DEFAULT_PALETTE[1].name && swatchLabel(p, 1, DEFAULT_PALETTE) === '#101010'
+          ? true
+          : `${named} / ${swatchLabel(p, 1, DEFAULT_PALETTE)}`
+      })
+
+      check('newSong can be seeded with a team default', () => {
+        const seeded = newSong(1, {
+          palette: defaultPalette().map(() => '#111111'),
+          highlightPalette: DEFAULT_HIGHLIGHTS.map(() => '#222222'),
+        })
+        // and must copy, not alias, so editing one song cannot affect another
+        const other = newSong(1)
+        seeded.palette[0] = '#333333'
+        return seeded.palette[1] === '#111111' &&
+          seeded.highlightPalette[0] === '#222222' &&
+          other.palette[0] === DEFAULT_PALETTE[0].fill
+          ? true
+          : 'seeding leaked'
+      })
+
+      /* ---- beat width ---- */
+
+      check('beat width drives the bar width', () => {
+        const s = newSong(1)
+        s.beatWidth = 300
+        const l = computeLayout(s, 1)
+        return l.barWidth === 300 * s.beatsPerBar ? true : l.barWidth
+      })
+
+      check('wider beats give every syllable more room', () => {
+        const narrow = newSong(1)
+        const wide = newSong(1)
+        wide.beatWidth = MAX_BEAT_WIDTH
+        const a = computeLayout(narrow, 1).bars[0].slots[0].cell
+        const b = computeLayout(wide, 1).bars[0].slots[0].cell
+        return b > a ? true : `${a} -> ${b}`
+      })
+
+      check('beat width round trips and is clamped on load', () => {
+        const s = newSong(1)
+        s.beatWidth = 260
+        const raw = JSON.parse(JSON.stringify(s))
+        return coerceSong(raw).beatWidth === 260 &&
+          coerceSong({ ...raw, beatWidth: 99999 }).beatWidth === MAX_BEAT_WIDTH &&
+          coerceSong({ ...raw, beatWidth: 2 }).beatWidth === MIN_BEAT_WIDTH &&
+          coerceSong({ ...raw, beatWidth: undefined }).beatWidth === 170
+          ? true
+          : 'not clamped'
+      })
+
+      /* ---- stroke weights ---- */
+
+      check('the measure line is thicker than the heaviest notch', () => {
+        const m = computeLayout(newSong(1), 1).m
+        return m.baselineW > Math.max(...m.notchW)
+          ? true
+          : `baseline ${m.baselineW} vs notch ${Math.max(...m.notchW)}`
+      })
+
+      check('the measure line covers the whole width of the beat-1 notch', () => {
+        // The notch is centred on x0, so a line starting at x0 leaves half of
+        // that stroke hanging past its end.
+        const l = computeLayout(newSong(1), 1)
+        const row = l.bars[0]
+        return Math.abs(row.lineX0 - (row.x0 - l.m.notchW[0] / 2)) < 0.001 &&
+          row.lineX0 < row.slots[0].x
+          ? true
+          : `line starts ${row.lineX0}, notch centre ${row.x0}`
+      })
+
+      check('the bar number matches the beat number in size', () => {
+        const m = computeLayout(newSong(1), 1).m
+        return m.labelSize === m.rulerSize ? true : `${m.labelSize} vs ${m.rulerSize}`
+      })
+
+      check('subdivision notches are light', () => {
+        const m = computeLayout(newSong(1), 1).m
+        // level 2 (the 16ths you see at division 4) and level 3 (32nds)
+        return m.notchW[2] <= 1.1 && m.notchW[3] < m.notchW[2]
+          ? true
+          : `l2 ${m.notchW[2]} l3 ${m.notchW[3]}`
+      })
+
+      check('the minimum-width floor does not flatten the ramp at 100%', () => {
+        // A floor set too high silently clamps the lightest levels together.
+        const m = computeLayout(newSong(1), 1).m
+        return eq(m.notchW, [1.9, 1.45, 1, 0.8])
+      })
+
+      check('notch weight falls strictly with level', () => {
+        // Two levels at the same weight would flatten the hierarchy — the beat
+        // and the "&" would read alike.
+        const m = computeLayout(newSong(1), 1).m
+        return m.notchW.every((w, i) => i === 0 || w < m.notchW[i - 1])
+          ? true
+          : JSON.stringify(m.notchW)
+      })
+
+      /* ---- vertical padding ---- */
+
+      check('beat vertical padding drives the row pitch', () => {
+        const a = newSong(2)
+        const b = newSong(2)
+        b.rowGap = 100
+        const la = computeLayout(a, 1)
+        const lb = computeLayout(b, 1)
+        return lb.rowPitch - la.rowPitch === 100 - a.rowGap ? true : `${la.rowPitch} -> ${lb.rowPitch}`
+      })
+
+      check('zero padding is allowed and puts bars flush', () => {
+        const s = newSong(2)
+        s.rowGap = 0
+        const l = computeLayout(s, 1)
+        return Math.abs(l.bars[1].top - l.bars[0].bottom) < 0.001 ? true : 'not flush'
+      })
+
+      check('padding round trips and is clamped on load', () => {
+        const s = newSong(1)
+        s.rowGap = 44
+        const raw = JSON.parse(JSON.stringify(s))
+        return coerceSong(raw).rowGap === 44 &&
+          coerceSong({ ...raw, rowGap: -5 }).rowGap === MIN_ROW_GAP &&
+          coerceSong({ ...raw, rowGap: 9999 }).rowGap === MAX_ROW_GAP &&
+          coerceSong({ ...raw, rowGap: undefined }).rowGap === 20
+          ? true
+          : 'not clamped'
+      })
+
+      /* ---- ruler label toggle ---- */
+
+      check('the “beat” label defaults on and survives a round trip', () => {
+        const s = newSong(1)
+        s.rulerLabel = false
+        const raw = JSON.parse(JSON.stringify(s))
+        return coerceSong(raw).rulerLabel === false &&
+          coerceSong({ ...raw, rulerLabel: undefined }).rulerLabel === true
+          ? true
+          : 'toggle lost'
+      })
+
+      /* ---- notch levels match the spec ---- */
+
+      check('div 4 = beat, small, medium, small', () => eq(NOTCH_LEVELS[4], [0, 2, 1, 2]))
+      check('div 3 = beat, small, small', () => eq(NOTCH_LEVELS[3], [0, 2, 2]))
+      check('div 6 = beat, small, small, medium, small, small', () => eq(NOTCH_LEVELS[6], [0, 2, 2, 1, 2, 2]))
+      check('div 8 halves down three levels', () => eq(NOTCH_LEVELS[8], [0, 3, 2, 3, 1, 3, 2, 3]))
+      check('notch height falls with level', () => {
+        const l = computeLayout(newSong(1), 1)
+        const h = l.m.notchH, w = l.m.notchW
+        return h[0] > h[1] && h[1] > h[2] && h[2] > h[3] && w[0] > w[1] && w[1] > w[2] && w[2] > w[3]
+          ? true
+          : 'not monotonic'
+      })
+
+      /* ---- layout ---- */
+
+      check('slot count follows per-beat divisions', () => {
+        const s = newSong(1)
+        s.bars[0].divisions = [4, 3, 6, 8]
+        return allSlotRefs(s).length === 21 ? true : allSlotRefs(s).length
+      })
+
+      check('bars never wrap: width is one bar wide', () => {
+        const s = newSong(5)
+        const l = computeLayout(s, 1)
+        return l.bars.every((b) => b.x1 - b.x0 === l.barWidth) ? true : 'bar widths differ'
+      })
+
+      check('zoom scales layout linearly', () => {
+        const s = newSong(2)
+        const a = computeLayout(s, 1)
+        const b = computeLayout(s, 2)
+        return Math.abs(b.barWidth - a.barWidth * 2) < 0.001 ? true : 'barWidth not linear'
+      })
+
+      check('bar labels start at startBar', () => {
+        const s = newSong(3)
+        s.startBar = 0
+        return eq(computeLayout(s, 1).bars.map((b) => b.label), [0, 1, 2])
+      })
+
+      check('beat edges bracket every beat', () => {
+        const l = computeLayout(newSong(1), 1)
+        const e = l.bars[0].beatEdges
+        return e.length === 5 && e[0] === l.bars[0].x0 && e[4] === l.bars[0].x1 ? true : JSON.stringify(e)
+      })
+
+      check('makeBar respects beatsPerBar', () => makeBar(7, 6).divisions.length === 7 || 'wrong length')
+
+      check('no notch is drawn at the end of a bar', () => {
+        // The last slot sits one cell short of the bar end; that position is
+        // beat 1 of the next bar and must not be notched twice.
+        const l = computeLayout(newSong(1), 1)
+        const row = l.bars[0]
+        const last = row.slots[row.slots.length - 1]
+        return row.slots.every((p) => p.x < row.x1) && Math.abs(last.x + last.cell - row.x1) < 0.001
+          ? true
+          : `last notch at ${last.x}, bar ends ${row.x1}`
+      })
+
+      check('the bar label is centred on the beat notch it belongs to', () => {
+        const l = computeLayout(newSong(2), 1)
+        return l.bars.every((r) => {
+          // the beat notch runs from the baseline up by notchH[0]
+          const notchMiddle = r.y - l.m.notchH[0] / 2
+          return Math.abs(r.labelY - l.m.labelSize * 0.36 - notchMiddle) < 0.001
+        })
+          ? true
+          : 'label not centred on the notch'
+      })
+
+      check('the label stays on the notch when lyrics get taller', () => {
+        // It must not drift with the text zone, which grows below the baseline.
+        const s = newSong(1)
+        s.lyricSize = MAX_LYRIC_SIZE
+        const l = computeLayout(s, 1)
+        const r = l.bars[0]
+        return Math.abs(r.labelY - l.m.labelSize * 0.36 - (r.y - l.m.notchH[0] / 2)) < 0.001
+          ? true
+          : 'label drifted'
+      })
+
+      /* ---- lyric size ---- */
+
+      check('lyric size drives the rendered text size', () => {
+        const s = newSong(1)
+        s.lyricSize = 28
+        return computeLayout(s, 1).m.textSize === 28 ? true : computeLayout(s, 1).m.textSize
+      })
+
+      check('lyric size scales with zoom', () => {
+        const s = newSong(1)
+        s.lyricSize = 20
+        return computeLayout(s, 2).m.textSize === 40 ? true : 'not scaled'
+      })
+
+      check('bigger lyrics make the row taller so bars cannot collide', () => {
+        const small = newSong(2)
+        const big = newSong(2)
+        big.lyricSize = MAX_LYRIC_SIZE
+        const a = computeLayout(small, 1)
+        const b = computeLayout(big, 1)
+        return b.rowPitch > a.rowPitch && b.bars[1].top >= b.bars[0].bottom
+          ? true
+          : `pitch ${a.rowPitch} -> ${b.rowPitch}`
+      })
+
+      check('lyric text clears a large circle at any size', () => {
+        for (const size of [MIN_LYRIC_SIZE, 15, MAX_LYRIC_SIZE]) {
+          const s = newSong(1)
+          s.lyricSize = size
+          const l = computeLayout(s, 1)
+          const row = l.bars[0]
+          // text cap-height top must sit below the circle's lower edge
+          if (row.textY - l.m.textSize * 0.72 < row.y + l.m.rLarge) return `collides at ${size}`
+        }
+        return true
+      })
+
+      check('lyric size round trips and is clamped on load', () => {
+        const s = newSong(1)
+        s.lyricSize = 22
+        if (coerceSong(JSON.parse(JSON.stringify(s))).lyricSize !== 22) return 'lost on round trip'
+        const raw = JSON.parse(JSON.stringify(s))
+        return [
+          coerceSong({ ...raw, lyricSize: 9999 }).lyricSize === MAX_LYRIC_SIZE,
+          coerceSong({ ...raw, lyricSize: 1 }).lyricSize === MIN_LYRIC_SIZE,
+          coerceSong({ ...raw, lyricSize: 'huge' }).lyricSize === 15,
+          coerceSong({ ...raw, lyricSize: undefined }).lyricSize === 15,
+        ].every(Boolean)
+          ? true
+          : 'not clamped'
+      })
+
+      /* ---- caption ---- */
+
+      check('caption renders in reference order', () =>
+        headerLine({ verse: 'Verse 2', title: 'Song Title', artist: 'Artist', year: '1994', timestamp: '1:04' }) ===
+          'Verse 2, “Song Title,” Artist (1994), 1:04' || headerLine({ verse: 'Verse 2', title: 'Song Title', artist: 'Artist', year: '1994', timestamp: '1:04' }))
+
+      check('caption omits blank fields', () =>
+        headerLine({ verse: '', title: 'X', artist: '', year: '', timestamp: '' }) === '“X,”' ||
+        headerLine({ verse: '', title: 'X', artist: '', year: '', timestamp: '' }))
+
+      const summary = document.createElement('h1')
+      summary.className = failures ? 'fail' : 'pass'
+      summary.textContent = failures ? `${failures} FAILED` : 'all checks passed'
+      out.prepend(summary)
+    </script>
+  </body>
+</html>
