@@ -12,6 +12,13 @@ transcription and analysis.
 Nothing to install and nothing to sign up for. It runs entirely in your browser, and your work stays
 on your own computer.
 
+![A four-bar verse notated in FlowScript: syllables placed on a 16th-note grid, large and small
+circles marking stressed and unstressed syllables, colored circles joined by ties showing rhyme, and
+two phrase highlights spanning pairs of bars.](docs/example.png)
+
+*An exported figure. Circle size shows stress, circle color shows rhyme — tied pairs are
+multisyllabic rhymes — and the background bands mark phrase structure.*
+
 ---
 
 # For users
@@ -44,7 +51,12 @@ visible at a glance rather than something you have to count out.
 Open **<https://lehawww.github.io/flow-script/>**. That's it — there is no installation, account, or
 setup step. You'll get an empty four-bar ruler ready to type into.
 
-Press **Keys ?** in the toolbar at any time for the complete keyboard reference.
+![The FlowScript editor: a toolbar with file, export and zoom controls along the top, mode buttons
+and a phrase color palette below it, the annotated score in the middle, and the Song settings panel
+open on the right showing caption, ruler and type options.](docs/editor.png)
+
+The toolbar holds file and export actions along the top, and the current mode's tools below. Press
+**Keys ?** at any time for the complete keyboard reference.
 
 ## How you work: three passes
 
@@ -180,6 +192,10 @@ To share an editable song with a colleague, send them the `.flowscript.json` fil
 Exports contain only the artwork — the cursor, selection outlines and editing handles are stripped.
 They're also independent of the zoom slider, so you can zoom out to see a long verse whole and still
 get a full-resolution image.
+
+The figure at the top of this page is an unretouched 3× PNG export. Its source is in the repository
+as [`docs/example.flowscript.json`](docs/example.flowscript.json) — open it with **Open** to see how
+it was put together.
 
 ## Your work is private
 
