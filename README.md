@@ -1,145 +1,290 @@
 # FlowScript
 
-Notate rap flow on a beat ruler. Place lyrics one syllable per rhythmic position, then annotate
-stress, rhyme and phrase structure on top of that grid — and export the result as a high-resolution
-image.
+**A tool for notating rap flow on a beat ruler.** Place lyrics one syllable per metric position,
+then annotate stress, rhyme and phrase structure over that grid — and export the result as a
+publication-quality image.
 
-Runs entirely in your browser. No account, no server, no network calls: your songs are files on your
-own machine and never leave it.
+### **[▶ Open FlowScript](https://lehawww.github.io/flow-script/)**
 
-**[Try it →](https://lehawww.github.io/flow-script/)**
+Created by **Leah Amarosa, PhD** (Music Theory), for music theorists documenting flow in
+transcription and analysis.
+
+Nothing to install and nothing to sign up for. It runs entirely in your browser, and your work stays
+on your own computer.
+
+---
+
+# For users
 
 ## What it does
 
-Three layers of annotation over a bar-and-beat grid:
+FlowScript gives you a bar-and-beat grid and three layers of annotation over it:
 
-- **Stress** — a large circle for a stressed syllable, a small one for unstressed, centred on the
-  notch it lands on.
-- **Rhyme** — the circle's fill color, from an editable 16-color palette. Matching circles can be
-  joined by a thick tie along the baseline, which may run across a bar line.
-- **Phrase structure** — a background highlight over a range of subdivisions, which may span bars.
+**Syllable placement.** Type one syllable per metric position. Positions you don't use stay empty,
+so rests and held syllables read correctly.
 
-The ruler itself is flexible: any number of beats per bar, and **division set per beat**, so a bar
-can mix triplets against 16ths. Notch height and stroke weight follow metric depth, so the "&" of a
-beat reads taller and heavier than the "e" and the "a".
+**Stress.** A large circle marks a stressed syllable, a small circle an unstressed one, centred on
+the notch it lands on. Positions can also carry no circle at all.
 
-## Quick start
+**Rhyme.** The circle's fill color, from an editable 16-color palette. Matching circles can be
+joined by a thick tie along the baseline, which may run across a bar line — useful for
+multisyllabic rhymes that straddle the barline.
+
+**Phrase structure.** A background highlight over a range of positions. Highlights select at
+subdivision resolution and may span bars, so a phrase can begin on the "e" of one beat and end on
+the "&" of another.
+
+The ruler itself is flexible. Any number of beats per bar, and **division is set per beat**, so a
+single bar can put a triplet against surrounding 16ths. Notch height and stroke weight follow metric
+depth, so the "&" of a beat reads taller and heavier than the "e" and the "a" — the hierarchy is
+visible at a glance rather than something you have to count out.
+
+## Getting started
+
+Open **<https://lehawww.github.io/flow-script/>**. That's it — there is no installation, account, or
+setup step. You'll get an empty four-bar ruler ready to type into.
+
+Press **Keys ?** in the toolbar at any time for the complete keyboard reference.
+
+## How you work: three passes
+
+FlowScript is built for annotating a whole verse one concern at a time, rather than finishing one
+syllable completely before moving to the next. Each mode is a pass over the material.
+
+### 1. Text — lay in the syllables
+
+Press `Ctrl/⌘ 1`. Type a syllable, then:
+
+| Key | Does |
+|---|---|
+| `Space` | commit and move to the next position |
+| `Enter` | commit and drop to the next bar |
+| `Backspace` on an empty slot | step back |
+| `←` `→` | move a position at a time |
+| `↑` `↓` | same position, previous/next bar |
+| `Home` / `End` | first/last position in the bar |
+
+Skip past any position that has no syllable. If two syllables end up crowding each other, drag
+either one to nudge it off centre; the nudge is saved with the song.
+
+### 2. Annotate — stress and rhyme
+
+Press `Ctrl/⌘ 2`.
+
+| Key | Does |
+|---|---|
+| `A` | stressed (large circle), then advance |
+| `S` | unstressed (small circle), then advance |
+| `D` | clear the circle, then advance |
+| `Shift` + `A`/`S`/`D` | the same, without advancing |
+| `1`–`9`, `0`, then `Shift`+`1`–`5` | apply rhyme colors 2–16 |
+| `` ` `` | reset to the default grey |
+| `Q` | tie this circle to the next one |
+| `Backspace` | clear everything at this position |
+
+Because `A`, `S` and `D` advance on their own, you can sweep a full bar of stress marks in one run
+of keystrokes without reaching for the mouse.
+
+Applying a color to a position that has no circle gives it a large one, on the assumption that a
+syllable you're marking as rhyming is a syllable that's there.
+
+### 3. Phrase — structure
+
+Press `Ctrl/⌘ 3`, then drag across the score to lay a highlight.
+
+| Key | Does |
+|---|---|
+| `1`–`8` | choose the highlight color |
+| `0` | eraser — drag over highlights to remove them |
+| `Delete` | remove the highlight you have selected |
+
+Click a highlight to select it. Drags snap to the subdivision grid, so a highlight starts and ends
+exactly where a syllable does.
+
+## Adding bars, undoing, zooming
+
+New songs start with four bars. The **Bars** buttons in the toolbar add and remove them:
+
+| Button | Does |
+|---|---|
+| **+ end** (or `Ctrl/⌘ Enter`) | add a bar at the end of the song |
+| **+ here** | insert a bar before the one you're in |
+| **duplicate** | copy the current bar, with its annotations, directly after it |
+| **delete** | remove the current bar |
+
+`Ctrl/⌘ Z` undoes and `Ctrl/⌘ Shift Z` redoes, throughout. Related edits collapse into one step, so
+dragging a color picker or typing a caption undoes as a single action rather than character by
+character.
+
+The **Zoom** slider changes only how large the score appears while you work. It has no effect on the
+document or on anything you export.
+
+## Setting up the ruler
+
+Open **Song settings** in the toolbar.
+
+- **Caption** — verse number, song title, artist, year and time-stamp. These render as a heading
+  above the score in exports, in the form *Verse 2, "Song Title," Artist (1994), 1:04*.
+- **Beats per bar**, and the number the first bar is labelled with (which may be 0).
+- **Default division** for new bars.
+- **Beat width** — how much horizontal room each beat gets.
+- **Beat vertical padding** — the gap between bar rows; 0 puts them flush.
+- **Top ruler** — beat numbers, a 0–15 subdivision index, or none. The word "beat" in front of it
+  can be switched off.
+- **Lyric font** — sans, or serif italic in the style of published transcriptions.
+- **Lyric size**.
+
+**Setting division per beat:** select a position in that beat, then use the toolbar's **Divide beat**
+buttons — 1, 2, 3, 4, 6 or 8. `→ bar` applies your choice to every beat in the current bar, `→ all`
+to the whole song.
+
+A note on size and width: they work together. Turning the lyric size up without also widening the
+beat will run long syllables into their neighbours, since a 16th only owns a quarter of a beat.
+
+**Bars never wrap to the window.** The view scrolls sideways instead, so what you see on screen is
+exactly what gets exported — no surprises between the editor and the finished figure.
+
+## Colors
+
+Press **Colors** in the toolbar to edit either palette: 16 rhyme colors and 8 phrase colors, each
+with a color picker and a hex field.
+
+Colors are saved **inside the song file**, so a piece always reopens and exports with the colors it
+was made with, and two analyses can use different schemes without interfering. Because positions
+reference colors by index rather than by value, editing a swatch re-tints everything already using
+it — which is the quick way to recolor a whole verse if a scheme isn't reading well.
+
+If you settle on a scheme you like, **Save as default for new songs** keeps it for future work. That
+preference lives in your browser and is not part of any file you share.
+
+## Saving your work
+
+One song is one `.flowscript.json` file on your computer.
+
+**Save** / **Open** use your browser's normal file dialog. In Chrome and Edge, Save writes back to
+the same file in place, the way a desktop application would. In Firefox and Safari, Save downloads a
+fresh copy instead — the work is identical, you just manage the files yourself.
+
+Opening a file repairs anything partial or out of date rather than refusing it, so songs made with
+earlier versions keep working.
+
+To share an editable song with a colleague, send them the `.flowscript.json` file; they open it with
+**Open**.
+
+## Exporting figures
+
+- **Export PNG** at 1× to 8×. **3× is a good default for print**; 8× is generous for a large figure.
+- **SVG** for a vector file you can scale losslessly or edit in Illustrator or Inkscape.
+- **Copy** puts a PNG straight on your clipboard to paste into a document or slide.
+
+Exports contain only the artwork — the cursor, selection outlines and editing handles are stripped.
+They're also independent of the zoom slider, so you can zoom out to see a long verse whole and still
+get a full-resolution image.
+
+## Your work is private
+
+FlowScript makes no network requests. There is no account, no server, no analytics, and no telemetry
+of any kind. Songs are files on your own machine and are never uploaded anywhere. Once the page has
+loaded you can disconnect from the internet entirely and keep working.
+
+This matters for unpublished analysis and for material you don't hold the rights to redistribute.
+
+## Working offline, or sharing the tool itself
+
+If you'd rather not depend on the website — for teaching on an unreliable connection, or archiving a
+copy alongside a paper — FlowScript can be built as a **single self-contained HTML file** that you
+double-click to open. See [For developers](#for-developers) below, or ask whoever set this up for a
+copy of `FlowScript.html`.
+
+Two things behave differently in that offline copy, because browsers restrict what local files may
+do: Save writes a new copy to your Downloads folder instead of overwriting in place, and the
+remembered default palette may not persist between sessions. Colors saved inside a song file are
+unaffected.
+
+## Browser support
+
+Best in current **Chrome or Edge**, which support saving back to the same file. Firefox and Safari
+work fully otherwise; Save just downloads a copy each time.
+
+---
+
+# For developers
+
+A React + TypeScript single-page app built with Vite. No backend, no runtime dependencies beyond
+React, and no network calls at all.
+
+## Running locally
 
 ```bash
 npm install
+```
+
+```bash
 npm run dev
 ```
 
 Then open <http://localhost:5173>.
 
-To build a static copy you can host anywhere:
+| Command | Does |
+|---|---|
+| `npm run dev` | Vite dev server |
+| `npm run build` | typecheck, then build to `dist/` |
+| `npm run build:standalone` | fold `dist/` into one file at `standalone/FlowScript.html` |
+| `npm run typecheck` | `tsc -b`, no emit |
+| `npm run preview` | serve the production build |
 
-```bash
-npm run build     # -> dist/
-```
+## Testing
 
-`dist/` uses relative paths, so it works from any host or subpath.
+There is no test runner. Logic that a save/load cycle depends on is covered by a **self-test page**:
+run `npm run dev` and open <http://localhost:5173/selftest.html>. It asserts document round-tripping,
+repair of damaged and older files, the notch-level tables, and the layout invariants — and it runs in
+about a second.
 
-## The workflow
+Add a `check(...)` there whenever you touch `src/model.ts` or `src/layout.ts`.
 
-Work in passes — that is what the three modes are for. Every button has a keyboard equivalent; press
-**Keys ?** in the toolbar for the full list. The whole app is built around sweeping a verse one
-concern at a time rather than fiddling with one syllable at a time.
+## How it fits together
 
-**1. Text** (`Ctrl/⌘ 1`) — type one syllable per position. `Space` commits and advances, `Enter`
-drops to the next bar, `Backspace` on an empty slot steps back. Not every position needs a syllable;
-just skip past it. Drag any syllable to nudge it off centre when two collide.
+The whole score is one `<svg>` with a keyboard-driven cursor over it. Four files carry the design:
 
-**2. Annotate** (`Ctrl/⌘ 2`) — `A` marks a stressed syllable, `S` unstressed, `D` clears; each
-advances, so you can sweep a bar in one run. Hold Shift to set without advancing. Number keys apply
-rhyme colors (`1`–`9`, `0`, then Shift+`1`–`5`; backtick resets to grey). `Q` connects a circle to
-the next one with a rhyme tie.
+| File | Responsibility |
+|---|---|
+| `src/model.ts` | the document: bars → beats → subdivisions, plus `coerceSong`, the trust boundary for anything loaded from disk |
+| `src/layout.ts` | pure geometry — the single source of truth for positions, shared by the renderer, hit-testing and export |
+| `src/components/Score.tsx` | the SVG surface, which is both the editing UI and the exported artwork |
+| `src/App.tsx` | cursor, modes and every keyboard binding |
 
-**3. Phrase** (`Ctrl/⌘ 3`) — drag to lay a background highlight. It selects at the resolution the
-beat is divided into, so with 16ths a phrase can run from the "e" of one beat to the "&" of another.
-`1`–`8` pick the color, `0` is an eraser, click a highlight and press Delete to remove it.
+Two invariants are easy to break and fail silently:
 
-## The ruler
+1. **Every visual property in `Score.tsx` is a presentation attribute, never a CSS class** — a
+   serialized clone gets no stylesheet from the host page, so a class-styled element exports wrong.
+2. **Anything that exists only for editing carries `data-editor-only`** so export can strip it.
 
-Configurable in **Song settings**:
+**[CLAUDE.md](CLAUDE.md) is the real architecture document.** It explains the addressing vocabulary,
+why bars never wrap, why the stroke-weight ramp must stay strictly descending, why export renders
+offscreen at zoom 1, and the other decisions whose reasons aren't obvious from the code. Read it
+before changing the geometry.
 
-- Beats per bar (default 4), and the number the first bar is labelled with (may be 0).
-- **Division per beat** — pick one with the toolbar's **Divide beat** buttons, then `→ bar` or
-  `→ all` to spread it. 1, 2, 3, 4, 6 and 8 are supported.
-- Caption line, top ruler (beat numbers or a 0–15 subdivision index), and lyric font. The word
-  "beat" in front of the top ruler can be switched off.
-- **Beat vertical padding** — the gap between bar rows. 0 puts them flush.
-- **Lyric size** and **beat width**. Size sets how big the syllables print; beat width sets how much
-  horizontal room each one gets. Turning the text up without widening the beat will run long
-  syllables into their neighbours, since a 16th only owns a quarter of a beat.
+## Deploying
 
-Bars never wrap to the window — the view scrolls sideways instead, so what you see on screen is
-exactly what gets exported.
+Pushing to `main` triggers `.github/workflows/pages.yml`, which builds and publishes to
+<https://lehawww.github.io/flow-script/>. Pages is configured under *Settings → Pages → Source:
+GitHub Actions*.
 
-## Colors
+`vite.config.ts` sets `base: './'`, so the build uses relative asset paths and works from a project
+subpath without further configuration.
 
-Both palettes are editable: press **Colors** in the toolbar. 16 rhyme colors and 8 phrase colors,
-each with a picker and a hex field.
+For the offline single-file build, `npm run build:standalone` inlines the script and stylesheet so
+there is no subresource left for a `file://` page to be blocked from fetching. The normal `dist/`
+build will not open by double-click; that is the whole reason the script exists.
 
-Colors are stored **inside the song file**, so a song always reopens and exports with the colors it
-was made with. Because the document references colors by index, editing a swatch re-tints everything
-already using it — the quick way to recolor a whole verse. You can also pin a preferred scheme as
-the default for new songs; that preference is per-browser and never travels with a file.
+## A note on dependencies
 
-## Files and export
+`npm audit` reports esbuild advisories inherited from Vite 5. They affect the dev server only, not
+anything shipped. Vite 6+ drops support for Node 21, so the pin is deliberate — leave it alone unless
+the toolchain moves.
 
-One song is one `.flowscript.json` file. **Save** / **Open** use the browser's file picker; in
-Chrome and Edge, Save writes back to the same file in place. Loading repairs partial or older files
-rather than refusing them.
-
-**Export PNG** writes the score at 1×–8× (3× is a good default for print), **SVG** exports vectors,
-and **Copy** puts a PNG on the clipboard. Exports contain only the artwork — the cursor, hit targets
-and selection outlines are stripped — and are independent of the zoom slider, so you can zoom out to
-see a long verse and still get a full-resolution image.
-
-## Hosting it
-
-It is a static site with no backend, so anywhere that serves files will do.
-
-**GitHub Pages** — the included workflow at `.github/workflows/pages.yml` builds and deploys on
-every push to `main`, publishing to <https://lehawww.github.io/flow-script/>. Enable it once under
-*Settings → Pages → Source: GitHub Actions*. Serving over HTTPS also means Save-in-place works,
-which it cannot do from a local file.
-
-**Any static host** — build and upload `dist/`.
-
-**A single file, no host at all:**
-
-```bash
-npm run build:standalone
-```
-
-This inlines the script and stylesheet into one self-contained `standalone/FlowScript.html` that a
-non-technical user can double-click. Two things degrade when a page is opened as a local file,
-because browsers restrict what `file://` pages may do: Save writes a new copy to Downloads instead
-of overwriting in place, and the remembered default palette may not persist. Colors saved inside a
-song file are unaffected.
-
-## Browser support
-
-Built for current Chrome and Edge, which support the File System Access API and so can save back to
-the same file. Firefox and Safari work too, but Save falls back to downloading a copy.
-
-## Development
-
-```bash
-npm run typecheck
-npm run build
-```
-
-There is no test runner. With the dev server running, open
-<http://localhost:5173/selftest.html> for a self-test page covering the file format, the repair path
-for damaged files, and the layout maths. Add a case there when you touch `src/model.ts` or
-`src/layout.ts`.
-
-[CLAUDE.md](CLAUDE.md) documents the architecture and the invariants worth knowing before changing
-the geometry.
+---
 
 ## License
 
-[MIT](LICENSE).
+[MIT](LICENSE) © 2026 Leah Amarosa.
