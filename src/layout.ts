@@ -24,9 +24,17 @@ export const BASE = {
   padY: 22,
   headerH: 56,
   rulerH: 36,
+  // Both zones are derived in computeLayout from the ink they have to hold —
+  // these are only the floors. See the rowPad comment there.
   aboveBaseline: 36, // notch zone
-  belowBaseline: 48, // syllable text zone
-  rowGap: 20,
+  belowBaseline: 34, // syllable text zone
+  rowGap: 0,
+  // Distance from the bar's left edge back to the right edge of its number, so
+  // the gutter reads as its own column instead of the number crowding beat 1.
+  labelGap: 30,
+  // Air between the row's ink and the edge of its block. Applied equally above
+  // and below, which is what keeps a phrase highlight centred on the row.
+  rowPad: 6,
   notchH: [30, 21, 13, 8],
   // Level 0 is the beat. Strictly descending, and every entry stays under
   // baselineW so the measure line reads as the heaviest stroke on the row.
@@ -63,11 +71,19 @@ export interface BarLayout {
   /** Label shown in the gutter. */
   label: number
   y: number // baseline
-  top: number // top of the row's vertical extent (highlight top)
-  bottom: number // bottom of the row's vertical extent (highlight bottom)
+  /**
+   * The row's vertical extent, and so also a phrase highlight's. The block
+   * holds the row's ink with `rowPad` of air on each side, so the highlight
+   * reads as centred and consecutive bars' highlights meet flush at zero
+   * vertical padding.
+   */
+  top: number
+  bottom: number
   textY: number
   /** Text baseline that puts the gutter label in the row's vertical middle. */
   labelY: number
+  /** Right edge of the gutter's bar number (the text is end-anchored here). */
+  labelX: number
   x0: number
   x1: number
   /**
@@ -107,6 +123,8 @@ function scaleMetrics(zoom: number): Metrics {
     aboveBaseline: s(BASE.aboveBaseline),
     belowBaseline: s(BASE.belowBaseline),
     rowGap: s(BASE.rowGap),
+    labelGap: s(BASE.labelGap),
+    rowPad: s(BASE.rowPad),
     notchH: BASE.notchH.map(s),
     // Floor at half a pixel, not a whole one: a 1px floor would clamp the two
     // lightest levels to the same weight at 100% zoom and flatten the ramp.
@@ -129,7 +147,18 @@ export function computeLayout(song: Song, zoom: number): Layout {
   // The lyric size is a document setting, not a fixed metric; the row's text
   // zone grows with it so big text does not collide with the next bar.
   m.textSize = clampLyricSize(song.lyricSize) * zoom
-  m.belowBaseline = Math.max(m.belowBaseline, m.rLarge + m.textSize * 1.6)
+  // Both zones are the ink they hold plus the same `rowPad` of air. Equal air
+  // is what makes a phrase highlight — which fills the row block — sit centred
+  // on the row instead of trailing a slab of colour under the lyrics, and it
+  // is why bars meet flush at zero vertical padding rather than showing a gap.
+  // The text zone still grows with the lyric size, so big text cannot collide
+  // with the next bar.
+  // Assigned, not floored: a floor on either side would quietly break the
+  // symmetry at the sizes where it bound.
+  m.aboveBaseline = Math.max(m.notchH[0], m.rLarge + m.circleStroke) + m.rowPad
+  // rLarge clears the circle, then the lyric's own baseline offset and its
+  // descenders — the same 0.92 + 0.26 of textSize that `textY` is built from.
+  m.belowBaseline = m.rLarge + m.textSize * 1.18 + m.rowPad
   // Beat width is a document setting too — it is how a syllable gets more
   // horizontal room, which zoom (scaling everything) cannot give.
   m.pxPerBeat = clampBeatWidth(song.beatWidth) * zoom
@@ -181,6 +210,7 @@ export function computeLayout(song: Song, zoom: number): Layout {
       // Centred on the vertical run of the beat notch — the tallest stroke on
       // the row — so the number reads as belonging to that downbeat.
       labelY: y - m.notchH[0] / 2 + m.labelSize * 0.36,
+      labelX: x0 - m.labelGap,
       x0,
       x1: x0 + barWidth,
       lineX0: x0 - m.notchW[0] / 2,

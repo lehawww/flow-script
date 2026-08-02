@@ -43,7 +43,7 @@ export function clampBeatWidth(n: unknown): number {
   return Math.min(MAX_BEAT_WIDTH, Math.max(MIN_BEAT_WIDTH, v))
 }
 
-export const DEFAULT_ROW_GAP = 20
+export const DEFAULT_ROW_GAP = 0
 export const MIN_ROW_GAP = 0
 export const MAX_ROW_GAP = 160
 

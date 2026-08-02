@@ -353,7 +353,7 @@ export default function Score(props: Props) {
       {layout.bars.map((row) => (
         <g key={song.bars[row.index].id}>
           <text
-            x={layout.x0 - m.labelSize * 0.75}
+            x={row.labelX}
             y={row.labelY}
             textAnchor="end"
             fontFamily={font.family}
