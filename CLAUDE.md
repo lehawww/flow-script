@@ -149,7 +149,13 @@ compatible, and breaking either silently corrupts exports:
 1. **Every visual property is a presentation attribute, never a CSS class.** A serialized clone gets
    no stylesheet from the host page.
 2. **Anything editing-only carries `data-editor-only`** — hit targets, cursor ring, selection
-   outline, drag preview. `exportImage.ts` strips those before serializing.
+   outline, drag preview, backdrop. `exportImage.ts` strips those before serializing.
+
+The backdrop — a transparent full-size rect that drops the selection when clicked — must stay the
+**first** child. SVG has no z-index; painting order is document order, so anywhere else it would
+swallow the clicks meant for the hit targets and the text. It also ignores points inside a bar's
+block (`onGrid`), because a bar owns strips that no hit target covers — past the last notch — and
+clicking those is not clicking off the grid.
 
 No `foreignObject`: it does not survive rasterisation. That is why text editing uses an HTML
 `<input>` positioned over the SVG in `App.tsx` rather than an editable element inside it.

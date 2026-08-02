@@ -43,6 +43,8 @@ interface Props {
   selectedHighlight: string | null
   highlightColor: number | 'erase'
   onSelectSlot: (ref: SlotRef) => void
+  /** Clicked off the grid — drop whatever is currently selected. */
+  onClearSelection: () => void
   onMoveText: (ref: SlotRef, tdx: number, tdy: number) => void
   onCreateHighlight: (a: GridPos, b: GridPos) => void
   onEraseHighlights: (a: GridPos, b: GridPos) => void
@@ -195,6 +197,23 @@ export default function Score(props: Props) {
     else props.onCreateHighlight(a, b)
   }
 
+  /* ---------------- background ---------------- */
+
+  /**
+   * A point is "on the grid" when it lands inside a bar's block. The backdrop
+   * sits behind every real target, so this only decides the strips a bar owns
+   * but has no hit target over — past the last notch, mainly. Clicking those
+   * should not deselect: they are still part of the bar.
+   */
+  const onGrid = (x: number, y: number) =>
+    layout.bars.some((row) => y >= row.top && y <= row.bottom && x >= row.x0 && x <= row.x1)
+
+  const onBackdropPointerDown = (evt: React.PointerEvent) => {
+    const { x, y } = localPoint(evt)
+    if (onGrid(x, y)) return
+    props.onClearSelection()
+  }
+
   /* ---------------- text drag ---------------- */
 
   const onTextPointerDown = (evt: React.PointerEvent, ref: SlotRef, tdx: number, tdy: number) => {
@@ -238,6 +257,21 @@ export default function Score(props: Props) {
       viewBox={`0 0 ${layout.width} ${layout.height}`}
       style={{ display: 'block', background: '#fff', touchAction: 'none' }}
     >
+      {/*
+        Backdrop. First child, so it is behind every other element and only
+        receives the clicks nothing else wanted — the gutter, the margins, the
+        ruler strip, the space under the last bar.
+      */}
+      <rect
+        data-editor-only="true"
+        x={0}
+        y={0}
+        width={layout.width}
+        height={layout.height}
+        fill="transparent"
+        onPointerDown={onBackdropPointerDown}
+      />
+
       {/* phrase-structure highlights */}
       <g>
         {song.highlights.map((h) =>
