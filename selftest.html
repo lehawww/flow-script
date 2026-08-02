@@ -18,6 +18,7 @@
     <script type="module">
       import {
         coerceSong, newSong, makeBar, allSlotRefs, slotKey, headerLine, NOTCH_LEVELS,
+        beatSubdivisions, subCount, subAtFraction, parseDivision, COMPOUND_DIVISIONS,
         comparePos, normalizeRange, MIN_LYRIC_SIZE, MAX_LYRIC_SIZE, MIN_BEAT_WIDTH, MAX_BEAT_WIDTH, MIN_ROW_GAP, MAX_ROW_GAP,
         DEFAULT_ROW_GAP,
       } from '/src/model.ts'
@@ -617,6 +618,147 @@
         return h[0] > h[1] && h[1] > h[2] && h[2] > h[3] && w[0] > w[1] && w[1] > w[2] && w[2] > w[3]
           ? true
           : 'not monotonic'
+      })
+
+      /* ---- compound divisions: a beat whose halves differ ---- */
+
+      const ats = (d) => beatSubdivisions(d).map((s) => s.at)
+      const levels = (d) => beatSubdivisions(d).map((s) => s.level)
+
+      check('a uniform division is evenly spaced at its own levels', () =>
+        eq(ats(4), [0, 0.25, 0.5, 0.75]) === true && eq(levels(4), NOTCH_LEVELS[4]) === true
+          ? true
+          : 'uniform table changed')
+
+      check('3+2 is a triplet then two 16ths', () =>
+        eq(ats('3+2'), [0, 1 / 6, 2 / 6, 0.5, 0.75]))
+
+      check('2+3 is two 16ths then a triplet', () =>
+        eq(ats('2+3'), [0, 0.25, 0.5, 0.5 + 1 / 6, 0.5 + 2 / 6]))
+
+      check('each half of a compound is spaced like the even division it would be', () =>
+        COMPOUND_DIVISIONS.every((d) => {
+          const [a, b] = d.split('+').map(Number)
+          const got = ats(d)
+          const want = [
+            ...ats(a * 2).slice(0, a),
+            ...ats(b * 2).slice(b),
+          ]
+          return want.every((v, i) => Math.abs(got[i] - v) < 1e-9)
+        }) ? true : 'a half does not match its even division')
+
+      // The levels are what make the grid readable, and they are read out of
+      // the even division each half would be — so the beat stays tallest and
+      // the middle notch keeps the level that marks the half of the beat.
+      check('a compound keeps the beat and the half-beat notch weights', () =>
+        COMPOUND_DIVISIONS.every((d) => {
+          const l = levels(d)
+          const half = beatSubdivisions(d).findIndex((s) => s.at === 0.5)
+          return l[0] === 0 && half > 0 && l[half] === 1
+        }) ? true : 'beat or half-beat level lost')
+
+      check('3+4 levels come from divisions 6 and 8', () =>
+        eq(levels('3+4'), [0, 2, 2, 1, 3, 2, 3]))
+
+      check('subCount counts notches, not the label', () =>
+        subCount('3+2') === 5 && subCount('3+4') === 7 && subCount(6) === 6
+          ? true
+          : `${subCount('3+2')} ${subCount('3+4')}`)
+
+      check('widths of one beat sum to the beat', () =>
+        COMPOUND_DIVISIONS.every(
+          (d) => Math.abs(beatSubdivisions(d).reduce((t, s) => t + s.width, 0) - 1) < 1e-9,
+        ) ? true : 'widths do not fill the beat')
+
+      // The rule behind re-dividing a beat: a position survives only where the
+      // new grid has a notch at the same instant.
+      check('subAtFraction keeps positions that line up and rejects the rest', () => {
+        if (subAtFraction(8, 0.5) !== 4) return 'the 8th did not survive 4 -> 8'
+        if (subAtFraction(3, 0.25) !== -1) return 'a 16th survived 4 -> 3'
+        // Second half of "3+2" is straight 16ths, so the 4-grid's 0.75 lives on.
+        if (subAtFraction('3+2', 0.75) !== 4) return '0.75 lost going to 3+2'
+        // The first half is a triplet, so the 4-grid's 0.25 has nowhere to go.
+        if (subAtFraction('3+2', 0.25) !== -1) return '0.25 survived into a triplet'
+        return true
+      })
+
+      check('a compound division round-trips through coerceSong', () => {
+        const s = newSong(1)
+        s.bars[0].divisions = ['3+2', 4, '4+3', 2]
+        s.bars[0].slots[slotKey(0, 4)] = { text: 'e', circle: 'small' }
+        const back = coerceSong(JSON.parse(JSON.stringify(s)))
+        return eq(back.bars[0].divisions, ['3+2', 4, '4+3', 2]) === true &&
+          back.bars[0].slots[slotKey(0, 4)]?.text === 'e'
+          ? true
+          : 'compound lost'
+      })
+
+      check('an unknown division is repaired, not kept', () => {
+        const s = newSong(1)
+        const raw = JSON.parse(JSON.stringify(s))
+        raw.bars[0].divisions = ['5+7', 4, 4, 4]
+        return coerceSong(raw).bars[0].divisions[0] === 4 ? true : 'kept a bad division'
+      })
+
+      check('a slot past the end of a compound beat is dropped on load', () => {
+        const s = newSong(1)
+        const raw = JSON.parse(JSON.stringify(s))
+        raw.bars[0].divisions = ['3+2', 4, 4, 4]
+        // 5 notches, so 4 is the last legal sub.
+        raw.bars[0].slots = { '0:4': { text: 'in' }, '0:5': { text: 'out' } }
+        const slots = coerceSong(raw).bars[0].slots
+        return slots['0:4'] && !slots['0:5'] ? true : eq(Object.keys(slots), ['0:4'])
+      })
+
+      check('parseDivision takes both spellings and falls back otherwise', () =>
+        parseDivision('3+2') === '3+2' && parseDivision('8') === 8 && parseDivision('nope', 3) === 3
+          ? true
+          : 'parse wrong')
+
+      check('slot count follows a compound division', () => {
+        const s = newSong(1)
+        s.bars[0].divisions = ['3+2', '3+4', 4, 4]
+        return allSlotRefs(s).length === 5 + 7 + 4 + 4 ? true : allSlotRefs(s).length
+      })
+
+      check('a compound beat lays out with uneven cells that still tile it', () => {
+        const s = newSong(1)
+        s.bars[0].divisions = ['3+2', 4, 4, 4]
+        const row = computeLayout(s, 1).bars[0]
+        const beat = row.slots.filter((p) => p.beat === 0)
+        const per = computeLayout(s, 1).m.pxPerBeat
+        const first = beat[0].cell
+        const last = beat[4].cell
+        // Triplet 16ths on the first half, straight 16ths on the second, and
+        // the two halves still add up to exactly one beat.
+        return Math.abs(first - per / 6) < 1e-9 &&
+          Math.abs(last - per / 4) < 1e-9 &&
+          Math.abs(beat.reduce((t, p) => t + p.cell, 0) - per) < 1e-9
+          ? true
+          : `${first} ${last}`
+      })
+
+      // The grab zone is the whole reason a wide slot next to a narrow one is
+      // still clickable: half a cell each way would reach past its neighbour.
+      check('grab zones tile the row without overlapping', () => {
+        const s = newSong(1)
+        s.bars[0].divisions = ['3+2', 3, 8, 4]
+        const row = computeLayout(s, 1).bars[0]
+        for (let i = 1; i < row.slots.length; i++) {
+          const a = row.slots[i - 1], b = row.slots[i]
+          if (Math.abs(a.hitX1 - b.hitX0) > 1e-9) return `gap at ${i}`
+          if (a.hitX1 <= a.x || b.hitX0 >= b.x) return `zone misses its notch at ${i}`
+        }
+        return true
+      })
+
+      check('an evenly divided beat grabs exactly half a cell each way', () => {
+        const row = computeLayout(newSong(1), 1).bars[0]
+        return row.slots.every(
+          (p) =>
+            Math.abs(p.hitX0 - (p.x - p.cell / 2)) < 1e-9 &&
+            Math.abs(p.hitX1 - (p.x + p.cell / 2)) < 1e-9,
+        ) ? true : 'uniform grab zone moved'
       })
 
       /* ---- layout ---- */

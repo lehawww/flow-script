@@ -8,10 +8,10 @@
  */
 
 import {
+  beatSubdivisions,
   clampBeatWidth,
   clampLyricSize,
   clampRowGap,
-  NOTCH_LEVELS,
   type Division,
   type Song,
 } from './model'
@@ -62,8 +62,20 @@ export interface SlotPos {
   sub: number
   x: number
   level: number
-  /** Horizontal room this slot owns, used to size hit targets and text boxes. */
+  /**
+   * How much of the bar this subdivision lasts for, which is what a phrase
+   * highlight ending on it has to cover. Not the same as the grab zone once a
+   * beat's two halves are divided differently — see hitX0/hitX1.
+   */
   cell: number
+  /**
+   * The grab zone: everywhere closer to this notch than to either neighbour.
+   * Half a cell each way while the cells around it match, so an evenly divided
+   * beat is unaffected; where they do not match, splitting the difference is
+   * what stops the wider slot's box from reaching across its neighbour's notch.
+   */
+  hitX0: number
+  hitX1: number
 }
 
 export interface BarLayout {
@@ -181,19 +193,30 @@ export function computeLayout(song: Song, zoom: number): Layout {
     const slots: SlotPos[] = []
     for (let beat = 0; beat < song.beatsPerBar; beat++) {
       const div = (bar.divisions[beat] ?? song.defaultDivision) as Division
-      const levels = NOTCH_LEVELS[div]
-      const cell = m.pxPerBeat / div
-      for (let sub = 0; sub < div; sub++) {
+      const beatX = x0 + beat * m.pxPerBeat
+      // Positions come from the division's own table rather than a constant
+      // step: a beat whose halves are divided differently has uneven cells.
+      beatSubdivisions(div).forEach((s, sub) => {
         slots.push({
           bar: index,
           beat,
           sub,
-          x: x0 + beat * m.pxPerBeat + sub * cell,
-          level: levels[sub] ?? levels[levels.length - 1],
-          cell,
+          x: beatX + s.at * m.pxPerBeat,
+          level: s.level,
+          cell: s.width * m.pxPerBeat,
+          hitX0: 0,
+          hitX1: 0,
         })
-      }
+      })
     }
+    // Second pass because the boundary between two slots is a fact about the
+    // pair, and the pair can straddle a beat with a different division.
+    slots.forEach((p, i) => {
+      const prev = slots[i - 1]
+      const next = slots[i + 1]
+      p.hitX0 = prev ? (prev.x + p.x) / 2 : p.x - p.cell / 2
+      p.hitX1 = next ? (p.x + next.x) / 2 : p.x + p.cell / 2
+    })
     const beatEdges = Array.from(
       { length: song.beatsPerBar + 1 },
       (_, i) => x0 + i * m.pxPerBeat,

@@ -6,7 +6,13 @@
  * keyboard-only.
  */
 
-import { DIVISIONS, type CircleKind, type Division, type Song } from '../model'
+import {
+  COMPOUND_DIVISIONS,
+  UNIFORM_DIVISIONS,
+  type CircleKind,
+  type Division,
+  type Song,
+} from '../model'
 import {
   COLOR_KEY_HINTS,
   DEFAULT_COLOR,
@@ -267,50 +273,70 @@ export default function Toolbar(p: Props) {
           </>
         )}
 
-        <div className="group">
-          <span className="lbl">Divide beat</span>
-          {DIVISIONS.map((d) => (
-            <button
-              key={d}
-              className={p.currentDivision === d ? 'div active' : 'div'}
-              disabled={!p.hasCursor}
-              onClick={() => p.onSetDivision(d, 'beat')}
-              title={`Divide the current beat into ${d}`}
-            >
-              {d}
-            </button>
-          ))}
-          <button
-            disabled={!p.hasCursor}
-            onClick={() => p.currentDivision && p.onSetDivision(p.currentDivision, 'bar')}
-            title="Apply the current beat's division to the whole bar"
-          >
-            → bar
-          </button>
-          <button
-            disabled={!p.hasCursor}
-            onClick={() => p.currentDivision && p.onSetDivision(p.currentDivision, 'all')}
-            title="Apply the current beat's division to every bar"
-          >
-            → all
-          </button>
-        </div>
+        {/* The ruler and the bar list belong to the writing pass: you lay the
+            grid out while typing the syllables onto it. Annotate and Phrase are
+            passes over a grid that already exists, so they get their own rows
+            back rather than carrying controls nobody reaches for there. */}
+        {p.mode === 'text' && (
+          <>
+            <div className="group">
+              <span className="lbl">Divide beat</span>
+              {UNIFORM_DIVISIONS.map((d) => (
+                <button
+                  key={d}
+                  className={p.currentDivision === d ? 'div active' : 'div'}
+                  disabled={!p.hasCursor}
+                  onClick={() => p.onSetDivision(d, 'beat')}
+                  title={`Divide the current beat into ${d}`}
+                >
+                  {d}
+                </button>
+              ))}
+              <span className="lbl sep">halves</span>
+              {COMPOUND_DIVISIONS.map((d) => (
+                <button
+                  key={d}
+                  className={p.currentDivision === d ? 'div active' : 'div'}
+                  disabled={!p.hasCursor}
+                  onClick={() => p.onSetDivision(d, 'beat')}
+                  title={`Divide the first half of the beat into ${d[0]}, the second into ${d[2]}`}
+                >
+                  {d}
+                </button>
+              ))}
+              <button
+                disabled={!p.hasCursor}
+                onClick={() => p.currentDivision && p.onSetDivision(p.currentDivision, 'bar')}
+                title="Apply the current beat's division to the whole bar"
+              >
+                → bar
+              </button>
+              <button
+                disabled={!p.hasCursor}
+                onClick={() => p.currentDivision && p.onSetDivision(p.currentDivision, 'all')}
+                title="Apply the current beat's division to every bar"
+              >
+                → all
+              </button>
+            </div>
 
-        <div className="group">
-          <span className="lbl">Bars</span>
-          <button onClick={p.onAddBar} title="Ctrl+Enter">
-            + end
-          </button>
-          <button onClick={p.onInsertBar} disabled={!p.hasCursor}>
-            + here
-          </button>
-          <button onClick={p.onDuplicateBar} disabled={!p.hasCursor}>
-            duplicate
-          </button>
-          <button onClick={p.onDeleteBar} disabled={!p.hasCursor || p.song.bars.length <= 1}>
-            delete
-          </button>
-        </div>
+            <div className="group">
+              <span className="lbl">Bars</span>
+              <button onClick={p.onAddBar} title="Ctrl+Enter">
+                + end
+              </button>
+              <button onClick={p.onInsertBar} disabled={!p.hasCursor}>
+                + here
+              </button>
+              <button onClick={p.onDuplicateBar} disabled={!p.hasCursor}>
+                duplicate
+              </button>
+              <button onClick={p.onDeleteBar} disabled={!p.hasCursor || p.song.bars.length <= 1}>
+                delete
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </header>
   )
