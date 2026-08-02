@@ -13,11 +13,13 @@ Nothing to install and nothing to sign up for. It runs entirely in your browser,
 on your own computer.
 
 ![A four-bar verse notated in FlowScript: syllables placed on a 16th-note grid, large and small
-circles marking stressed and unstressed syllables, colored circles joined by ties showing rhyme, and
-two phrase highlights spanning pairs of bars.](docs/example.png)
+circles marking stressed and unstressed syllables, colored circles joined by ties showing rhyme,
+four syllables striped in a second color where two rhymes overlap, and four phrase bands behind the
+score, two of which carry across a bar line.](docs/example.png)
 
 *An exported figure. Circle size shows stress, circle color shows rhyme — tied pairs are
-multisyllabic rhymes — and the background bands mark phrase structure.*
+multisyllabic rhymes, and a striped circle is a syllable two rhymes share — while the background
+bands mark phrase structure.*
 
 ---
 
@@ -35,7 +37,9 @@ the notch it lands on. Positions can also carry no circle at all.
 
 **Rhyme.** The circle's fill color, from an editable 16-color palette. Matching circles can be
 joined by a thick tie along the baseline, which may run across a bar line — useful for
-multisyllabic rhymes that straddle the barline.
+multisyllabic rhymes that straddle the barline. A circle can carry a **second** color as diagonal
+stripes, for a syllable two rhymes share: in "drop it in the pocket", *drop* and *it* belong both to
+the earlier rhyme and to the new multi built on *pock-et*.
 
 **Phrase structure.** A background highlight over a range of positions. Highlights select at
 subdivision resolution and may span bars, so a phrase can begin on the "e" of one beat and end on
@@ -51,9 +55,10 @@ visible at a glance rather than something you have to count out.
 Open **<https://lehawww.github.io/flow-script/>**. That's it — there is no installation, account, or
 setup step. You'll get an empty four-bar ruler ready to type into.
 
-![The FlowScript editor: a toolbar with file, export and zoom controls along the top, mode buttons
-and a phrase color palette below it, the annotated score in the middle, and the Song settings panel
-open on the right showing caption, ruler and type options.](docs/editor.png)
+![The FlowScript editor in Annotate mode: file, export and zoom controls along the top, then the
+mode buttons with the stress controls, the 16-color Rhyme palette and the striped second-color row
+beneath them, the annotated four-bar score filling the rest of the window, and the keyboard hints
+along the bottom.](docs/editor.png)
 
 The toolbar holds file and export actions along the top, and the current mode's tools below. Press
 **Keys ?** at any time for the complete keyboard reference.
@@ -91,6 +96,7 @@ Press `Ctrl/⌘ 2`.
 | `Shift` + `A`/`S`/`D` | the same, without advancing |
 | `1`–`9`, `0`, then `Shift`+`1`–`5` | apply rhyme colors 2–16 |
 | `` ` `` | reset to the default grey |
+| `Alt` + any color key | add that color as a *second* rhyme; again removes it |
 | `Q` | tie this circle to the next one |
 | `Backspace` | clear everything at this position |
 
@@ -100,18 +106,39 @@ of keystrokes without reaching for the mouse.
 Applying a color to a position that has no circle gives it a large one, on the assumption that a
 syllable you're marking as rhyming is a syllable that's there.
 
+The swatch rows always mark the colors of the syllable at the cursor, so moving along a line shows
+you what each circle is already wearing rather than what you last pressed.
+
+### Two rhymes on one syllable
+
+Rhymes overlap: the syllable that ends one multi is often the syllable that starts the next. The
+toolbar's **2nd** row — the striped swatches under **Rhyme** — puts a second color on the circle at
+the cursor, drawn as diagonal stripes over the first. Picking the same color again takes it off, as
+does the `⌫` at the end of that row; a plain color key sets one solid color again.
+
+So in "drop it in the pocket", *drop* and *it* keep the earlier rhyme's color and pick up a stripe
+of the new one, while *pock-* and *et* carry the same pair — the shared syllables are visible as
+shared rather than reassigned to whichever rhyme you marked last.
+
+Pick the stripe from the **dark** end of the palette — Indigo, Crimson, Forest and Plum, the four
+before White. Two pastels striped together average out into a single muddy tint; a dark against a
+pastel stays readable as two colors at the size a circle actually gets printed.
+
 ### 3. Phrase — structure
 
 Press `Ctrl/⌘ 3`, then drag across the score to lay a highlight.
 
 | Key | Does |
 |---|---|
-| `1`–`8` | choose the highlight color |
+| `1`–`8` | choose the highlight color, or recolor the one you have selected |
 | `0` | eraser — drag over highlights to remove them |
 | `Delete` | remove the highlight you have selected |
 
 Click a highlight to select it. Drags snap to the subdivision grid, so a highlight starts and ends
 exactly where a syllable does.
+
+The swatch strip marks the selected highlight's own color, so you can see what a band is without
+guessing, and picking another color recolors it in place.
 
 ## Adding bars, undoing, zooming
 
@@ -160,6 +187,10 @@ exactly what gets exported — no surprises between the editor and the finished 
 
 Press **Colors** in the toolbar to edit either palette: 16 rhyme colors and 8 phrase colors, each
 with a color picker and a hex field.
+
+The stock rhyme scheme is eleven pastels, then four dark colors, then white. If you replace the dark
+ones, keep something dark in the scheme: two-color circles need a light and a dark to read as two
+rhymes rather than one blended tint.
 
 Colors are saved **inside the song file**, so a piece always reopens and exports with the colors it
 was made with, and two analyses can use different schemes without interfering. Because positions
@@ -253,10 +284,10 @@ Then open <http://localhost:5173>.
 
 There is no test runner. Logic that a save/load cycle depends on is covered by a **self-test page**:
 run `npm run dev` and open <http://localhost:5173/selftest.html>. It asserts document round-tripping,
-repair of damaged and older files, the notch-level tables, and the layout invariants — and it runs in
-about a second.
+repair of damaged and older files, the notch-level tables, the layout invariants, and the palette
+contrast that two-color circles depend on — and it runs in about a second.
 
-Add a `check(...)` there whenever you touch `src/model.ts` or `src/layout.ts`.
+Add a `check(...)` there whenever you touch `src/model.ts`, `src/layout.ts` or `src/palette.ts`.
 
 ## How it fits together
 

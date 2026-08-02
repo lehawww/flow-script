@@ -68,6 +68,15 @@ export interface Slot {
   circle?: CircleKind
   /** Index into PALETTE (0 = default grey). */
   color?: number
+  /**
+   * A second rhyme this syllable belongs to, drawn as diagonal stripes of this
+   * color over the `color` fill. Set when one syllable is shared by two rhymes
+   * — the overlap in "drop it in the pocket", where "drop / it" belong both to
+   * the earlier rhyme and to the new multi built on "pock- / et".
+   *
+   * Undefined is the normal case: a plain, solid circle.
+   */
+  color2?: number
   /** Draw a thick rhyme connector from this circle to the next circle. */
   tie?: boolean
 }
@@ -312,6 +321,7 @@ export function coerceSong(raw: unknown): Song {
       if (Number.isFinite(v?.tdy)) slot.tdy = Number(v.tdy)
       if (v?.circle === 'large' || v?.circle === 'small') slot.circle = v.circle
       if (Number.isInteger(v?.color)) slot.color = Number(v.color)
+      if (Number.isInteger(v?.color2)) slot.color2 = Number(v.color2)
       if (v?.tie === true) slot.tie = true
       if (Object.keys(slot).length) slots[slotKey(beat, sub)] = slot
     }

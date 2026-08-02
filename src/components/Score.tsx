@@ -10,9 +10,9 @@
  *      stripped before export.
  */
 
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import type { Layout } from '../layout'
-import { slotAtX, slotEndX, slotStartX } from '../layout'
+import { slotAtX, slotEndX, slotStartX, stripeBands } from '../layout'
 import {
   comparePos,
   headerLine,
@@ -28,6 +28,8 @@ import { phraseFill, rhymeFill } from '../palette'
 export type Mode = 'text' | 'annotate' | 'highlight'
 
 const INK = '#111111'
+/** Direction of the second-color stripes. Negative = top-left to bottom-right. */
+const STRIPE_ANGLE = -45
 const FONTS = {
   sans: { family: "'Helvetica Neue', Helvetica, Arial, sans-serif", style: 'normal' },
   serif: { family: "Georgia, 'Times New Roman', Times, serif", style: 'italic' },
@@ -82,6 +84,13 @@ export default function Score(props: Props) {
   const dragRef = useRef<{ a: GridPos; b: GridPos } | null>(null)
   const [dragRange, setDragRange] = useState<{ a: GridPos; b: GridPos } | null>(null)
   const textDrag = useRef<{ ref: SlotRef; startX: number; startY: number; baseX: number; baseY: number; moved: boolean } | null>(null)
+
+  // Stripe geometry depends only on the radius, so the two circle sizes cover
+  // every two-color circle on the page.
+  const stripes = useMemo(
+    () => ({ large: stripeBands(m.rLarge), small: stripeBands(m.rSmall) }),
+    [m.rLarge, m.rSmall],
+  )
 
   /* ---------------- rhyme ties ---------------- */
 
@@ -446,16 +455,50 @@ export default function Score(props: Props) {
             const slot = song.bars[p.bar].slots[slotKey(p.beat, p.sub)]
             if (!slot?.circle) return null
             const r = slot.circle === 'large' ? m.rLarge : m.rSmall
+            const key = `c-${p.bar}-${p.beat}-${p.sub}`
+            const fill = rhymeFill(song.palette, slot.color)
+
+            // The common case stays a single <circle>: one element per circle
+            // in the exported file, exactly as before two-color circles existed.
+            if (slot.color2 === undefined) {
+              return (
+                <circle
+                  key={key}
+                  cx={p.x}
+                  cy={row.y}
+                  r={r}
+                  fill={fill}
+                  stroke={INK}
+                  strokeWidth={m.circleStroke}
+                />
+              )
+            }
+
+            // Two rhymes on one syllable: the second color as diagonal stripes
+            // over the first. The outline goes on last so the stripes cannot
+            // ride over it.
             return (
-              <circle
-                key={`c-${p.bar}-${p.beat}-${p.sub}`}
-                cx={p.x}
-                cy={row.y}
-                r={r}
-                fill={rhymeFill(song.palette, slot.color)}
-                stroke={INK}
-                strokeWidth={m.circleStroke}
-              />
+              <g key={key}>
+                <circle cx={p.x} cy={row.y} r={r} fill={fill} stroke="none" />
+                <g transform={`translate(${p.x} ${row.y}) rotate(${STRIPE_ANGLE})`}>
+                  {(slot.circle === 'large' ? stripes.large : stripes.small).map((d, i) => (
+                    <path
+                      key={i}
+                      d={d}
+                      fill={rhymeFill(song.palette, slot.color2)}
+                      stroke="none"
+                    />
+                  ))}
+                </g>
+                <circle
+                  cx={p.x}
+                  cy={row.y}
+                  r={r}
+                  fill="none"
+                  stroke={INK}
+                  strokeWidth={m.circleStroke}
+                />
+              </g>
             )
           }),
         )}

@@ -252,6 +252,58 @@ export function computeLayout(song: Song, zoom: number): Layout {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* Two-color circles                                                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * One stripe period (a band plus the gap after it), as a fraction of the
+ * circle's radius. Deriving it from the radius rather than fixing it in pixels
+ * keeps the stripe *count* constant, so a small unstressed circle reads as the
+ * same mark as a large one instead of collapsing to a single band.
+ */
+export const STRIPE_PERIOD = 0.82
+
+/**
+ * The second color's bands on a two-color circle, as path `d` strings in a
+ * coordinate system centred on the circle. Each band is the slice of the disc
+ * between two parallel chords: two arcs joined by two straight edges. The
+ * caller rotates the whole set into the diagonal.
+ *
+ * Real geometry rather than an SVG `<pattern>` on purpose. A pattern is a
+ * `url(#id)` reference, and the export path renders a second <Score> into the
+ * same document (see withExportSVG) — two live SVGs carrying the same ids,
+ * where a fragment reference resolves to whichever element comes first. A path
+ * carries its own geometry and cannot bind to the wrong node.
+ *
+ * The bands depend only on the radius, so a render computes one set per circle
+ * size and reuses it for every circle on the page.
+ */
+export function stripeBands(r: number): string[] {
+  const period = r * STRIPE_PERIOD
+  const halfBand = period / 4
+  const n = (v: number) => Math.round(v * 1000) / 1000
+  const out: string[] = []
+  // A band centred on the circle's centre, then outwards symmetrically until
+  // the next one would fall clear of the disc.
+  const kMax = Math.ceil((r + halfBand) / period)
+  for (let k = -kMax; k <= kMax; k++) {
+    const a = Math.max(-r, k * period - halfBand)
+    const b = Math.min(r, k * period + halfBand)
+    if (b - a < 0.01) continue
+    // Half-chord length at each edge: where that edge meets the circle.
+    const ya = Math.sqrt(Math.max(0, r * r - a * a))
+    const yb = Math.sqrt(Math.max(0, r * r - b * b))
+    out.push(
+      `M ${n(a)} ${n(-ya)}` +
+        ` A ${n(r)} ${n(r)} 0 0 1 ${n(b)} ${n(-yb)}` +
+        ` L ${n(b)} ${n(yb)}` +
+        ` A ${n(r)} ${n(r)} 0 0 1 ${n(a)} ${n(ya)} Z`,
+    )
+  }
+  return out
+}
+
 /** Default (unnudged) text anchor for a slot. */
 export function textAnchorY(row: BarLayout): number {
   return row.textY

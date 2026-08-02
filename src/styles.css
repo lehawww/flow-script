@@ -8,6 +8,10 @@
   --ink: #1a1d21;
   --muted: #6b7280;
   --accent: #2563eb;
+  /* Hover states for the two filled buttons, which cannot use the generic grey
+     hover without losing their white label. */
+  --accent-hover: #1d4ed8;
+  --ink-hover: #33383f;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   font-size: 13px;
   color: var(--ink);
@@ -59,16 +63,23 @@ button, select, input[type='number'], input[type='text'], .slot-input {
 .toolbar button:hover:not(:disabled), .panel button:hover { background: #f0f2f5; }
 .toolbar button:disabled { opacity: 0.4; cursor: default; }
 
+/* These two carry white labels, so they need their own hover: the generic grey
+   above is a more specific selector (it has :hover and :not()), and would win
+   the background while leaving the text white — white on light grey. Each rule
+   sits next to the state it belongs to rather than being hoisted into the
+   generic hover, so a new filled button cannot inherit the bug by omission. */
 .toolbar .mode.active {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
 }
+.toolbar .mode.active:hover:not(:disabled) { background: var(--accent-hover); }
 .toolbar .div.active {
   background: var(--ink);
   border-color: var(--ink);
   color: #fff;
 }
+.toolbar .div.active:hover:not(:disabled) { background: var(--ink-hover); }
 
 .toolbar select { border: 1px solid var(--line); border-radius: 6px; padding: 3px 4px; background: #fff; }
 
@@ -80,8 +91,10 @@ button, select, input[type='number'], input[type='text'], .slot-input {
   border-radius: 5px !important;
   border: 1px solid #b6bac0 !important;
 }
-.swatch.active { outline: 2px solid var(--accent); outline-offset: 1px; }
+.swatch.active,
+.swatch.active2 { outline: 2px solid var(--accent); outline-offset: 1px; }
 .swatch.erase { background: #fff; font-size: 12px; }
+.swatch:disabled { opacity: 0.4; }
 
 .zoom { display: flex; align-items: center; gap: 6px; color: var(--muted); }
 .zoom input[type='range'] { width: 110px; }

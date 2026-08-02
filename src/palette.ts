@@ -19,8 +19,24 @@ export interface Swatch {
 /** Index 0 is the color every new circle gets. */
 export const DEFAULT_COLOR = 0
 
+/**
+ * The first eleven are the pastels a solid circle wants: light enough that the
+ * black outline and the syllable beneath stay the strongest marks on the row.
+ *
+ * The four before White are deliberately **dark**. A two-color circle stripes
+ * one of these against another, and a palette of pastels alone cannot do that —
+ * every pair in the all-pastel scheme this replaced sat between 1.0:1 and
+ * 2.3:1 contrast, so the stripes read as a single muddy tint rather than as two
+ * rhymes. Each of these clears 3.5:1 against every light color (2.3:1 against
+ * Coral, the lightest-but-one), which is what makes the stripe legible.
+ *
+ * They are dark relative to the pastels, not to each other: striping two darks
+ * together still reads poorly, and hue is all that separates them there. The
+ * self-test pins the count and the worst-case pairing so a future palette edit
+ * cannot quietly return the scheme to all-pastel.
+ */
 export const DEFAULT_PALETTE: Swatch[] = [
-  { name: 'Grey', fill: '#C9C9C9' },
+  { name: 'Grey', fill: '#E0E0E0' },
   { name: 'Yellow', fill: '#FFE44D' },
   { name: 'Green', fill: '#9BE89B' },
   { name: 'Cyan', fill: '#7FE3F0' },
@@ -31,10 +47,12 @@ export const DEFAULT_PALETTE: Swatch[] = [
   { name: 'Coral', fill: '#FF8A80' },
   { name: 'Sky', fill: '#8FB8FF' },
   { name: 'Mint', fill: '#7FE0C4' },
-  { name: 'Peach', fill: '#FFCBA4' },
-  { name: 'Magenta', fill: '#F09BE0' },
-  { name: 'Olive', fill: '#C8C87A' },
-  { name: 'Tan', fill: '#D9BE93' },
+  { name: 'Indigo', fill: '#2F4B9B' },
+  { name: 'Crimson', fill: '#B02A37' },
+  { name: 'Forest', fill: '#1F7A4D' },
+  { name: 'Plum', fill: '#6D3B8E' },
+  // Kept last: a white circle is the one "outline only" mark, which no dark
+  // color can stand in for.
   { name: 'White', fill: '#FFFFFF' },
 ]
 
@@ -60,6 +78,34 @@ export const COLOR_KEY_HINTS = [
   '`', '1', '2', '3', '4', '5', '6', '7', '8', '9',
   '0', '!', '@', '#', '$', '%',
 ]
+
+/** The `e.code` + shift state that produces each hint character. */
+const SHIFTED_DIGITS: Record<string, string> = {
+  '!': 'Digit1', '@': 'Digit2', '#': 'Digit3', '$': 'Digit4', '%': 'Digit5',
+}
+const COLOR_KEY_CODES = COLOR_KEY_HINTS.map((hint) => {
+  if (hint === '`') return { code: 'Backquote', shift: false }
+  if (/^[0-9]$/.test(hint)) return { code: `Digit${hint}`, shift: false }
+  const shifted = SHIFTED_DIGITS[hint]
+  return shifted ? { code: shifted, shift: true } : null
+})
+
+/**
+ * The palette index a key event stands for, or -1.
+ *
+ * The second-color binding holds Alt, and `e.key` is unusable then — macOS
+ * turns ⌥1 into "¡" — so it matches on `e.code`. Derived from COLOR_KEY_HINTS
+ * rather than written out again, so the help text, the plain binding and the
+ * Alt binding cannot drift apart.
+ *
+ * `code` is empty on some input paths that do not come from real key hardware
+ * (remote desktops, on-screen keyboards, synthetic events). The hint characters
+ * are unambiguous on their own, so those fall back to `key`.
+ */
+export function colorIndexForKey(code: string, key: string, shift: boolean): number {
+  if (!code) return COLOR_KEY_HINTS.indexOf(key)
+  return COLOR_KEY_CODES.findIndex((k) => k !== null && k.code === code && k.shift === shift)
+}
 
 /* ------------------------------------------------------------------ */
 /* Color values                                                       */
