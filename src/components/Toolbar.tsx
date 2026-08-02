@@ -7,15 +7,31 @@
  */
 
 import { DIVISIONS, type CircleKind, type Division, type Song } from '../model'
-import { COLOR_KEY_HINTS, DEFAULT_HIGHLIGHTS, DEFAULT_PALETTE, swatchLabel } from '../palette'
+import {
+  COLOR_KEY_HINTS,
+  DEFAULT_COLOR,
+  DEFAULT_HIGHLIGHTS,
+  DEFAULT_PALETTE,
+  rhymeFill,
+  swatchLabel,
+} from '../palette'
 import type { Mode } from './Score'
 
 interface Props {
   song: Song
   mode: Mode
   setMode: (m: Mode) => void
-  rhymeColor: number
+  /**
+   * The colors on the syllable at the cursor, marked in the swatch rows. Null
+   * when that position carries none — the strip shows what is there, it is not
+   * a "current color" you load before painting.
+   */
+  rhymeColor: number | null
   setRhymeColor: (i: number) => void
+  /** Second rhyme color, striped over the first. */
+  rhymeColor2: number | null
+  setRhymeColor2: (i: number) => void
+  onClearSecondColor: () => void
   highlightColor: number | 'erase'
   setHighlightColor: (i: number | 'erase') => void
   currentDivision: Division | null
@@ -64,6 +80,11 @@ const MODES: { id: Mode; label: string; hint: string }[] = [
 ]
 
 export default function Toolbar(p: Props) {
+  // What a new circle is actually filled with. Read from the song rather than
+  // written out again, so the preview follows both the default and a palette
+  // the user has edited.
+  const newCircleFill = rhymeFill(p.song.palette, DEFAULT_COLOR)
+
   return (
     <header className="toolbar">
       <div className="row row-file">
@@ -149,12 +170,12 @@ export default function Toolbar(p: Props) {
               <span className="lbl">Stress</span>
               <button onClick={() => p.onSetCircle('large')} disabled={!p.hasCursor} title="A">
                 <svg width="22" height="22" viewBox="0 0 22 22">
-                  <circle cx="11" cy="11" r="8" fill="#C9C9C9" stroke="#111" strokeWidth="1.5" />
+                  <circle cx="11" cy="11" r="8" fill={newCircleFill} stroke="#111" strokeWidth="1.5" />
                 </svg>
               </button>
               <button onClick={() => p.onSetCircle('small')} disabled={!p.hasCursor} title="S">
                 <svg width="22" height="22" viewBox="0 0 22 22">
-                  <circle cx="11" cy="11" r="4.5" fill="#C9C9C9" stroke="#111" strokeWidth="1.5" />
+                  <circle cx="11" cy="11" r="4.5" fill={newCircleFill} stroke="#111" strokeWidth="1.5" />
                 </svg>
               </button>
               <button onClick={() => p.onSetCircle(null)} disabled={!p.hasCursor} title="D">
@@ -178,6 +199,37 @@ export default function Toolbar(p: Props) {
               ))}
               <button className="link" onClick={p.onToggleColors} title="Edit the color palettes">
                 edit…
+              </button>
+            </div>
+
+            {/* Second rhyme color. Its own row rather than a modifier on the row
+                above, so it is something you can see and click rather than a
+                keystroke you have to know about. The swatches are drawn striped
+                because that is how the color reads on the score. */}
+            <div className="group swatches">
+              <span className="lbl" title="A second rhyme this syllable also belongs to">
+                2nd
+              </span>
+              {p.song.palette.map((fill, i) => (
+                <button
+                  key={i}
+                  className={p.rhymeColor2 === i ? 'swatch active2' : 'swatch'}
+                  style={{
+                    background: `repeating-linear-gradient(-45deg, ${fill} 0 4px, #fff 4px 8px)`,
+                  }}
+                  onClick={() => p.setRhymeColor2(i)}
+                  title={`${swatchLabel(p.song.palette, i, DEFAULT_PALETTE)} as a second rhyme — Alt+${
+                    COLOR_KEY_HINTS[i]
+                  }. Click again to take it off.`}
+                />
+              ))}
+              <button
+                className="swatch erase"
+                onClick={p.onClearSecondColor}
+                disabled={p.rhymeColor2 === null}
+                title="Back to one color on this circle"
+              >
+                ⌫
               </button>
             </div>
           </>

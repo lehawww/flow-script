@@ -21,6 +21,7 @@ import {
   allSlotRefs,
   coerceSong,
   comparePos,
+  getSlot,
   makeBar,
   makeId,
   newSong,
@@ -37,7 +38,9 @@ import {
 } from './model'
 import {
   clearStoredPalettes,
+  colorIndexForKey,
   COLOR_KEY_HINTS,
+  DEFAULT_COLOR,
   DEFAULT_HIGHLIGHTS,
   loadStoredPalettes,
   storeDefaultPalettes,
@@ -60,6 +63,7 @@ function isEmptySlot(s: Slot): boolean {
     !s.text &&
     !s.circle &&
     s.color === undefined &&
+    s.color2 === undefined &&
     !s.tie &&
     s.tdx === undefined &&
     s.tdy === undefined
@@ -77,7 +81,10 @@ export default function App() {
 
   const [mode, setMode] = useState<Mode>('text')
   const [cursor, setCursor] = useState<SlotRef | null>({ bar: 0, beat: 0, sub: 0 })
-  const [rhymeColor, setRhymeColor] = useState(0)
+  // The toolbar's swatch markers are derived from the slot under the cursor
+  // (see shownColor / shownColor2 below), not held as "last color used" — the
+  // strip reads as what this syllable is wearing rather than what you last
+  // pressed, which is the question you have when you land on a circle.
   const [highlightColor, setHighlightColor] = useState<number | 'erase'>(0)
   const [selectedHighlight, setSelectedHighlight] = useState<string | null>(null)
   const [zoom, setZoom] = useState(1)
@@ -200,15 +207,46 @@ export default function App() {
   const applyColor = useCallback(
     (index: number) => {
       if (!cursor) return
-      setRhymeColor(index)
       mutateSlot(cursor, (s) => {
         // Color implies a syllable is there; give it a circle if it has none.
         if (!s.circle) s.circle = 'large'
         s.color = index
+        // A plain color key means "this one rhyme", which is also the way back
+        // to a solid circle from a two-color one.
+        delete s.color2
       })
     },
     [cursor, mutateSlot],
   )
+
+  /**
+   * The second rhyme a syllable belongs to, drawn as stripes over the first.
+   * The same key toggles it off, and a color already on the circle cannot be
+   * striped against itself — that would just render as the solid circle again.
+   */
+  const applySecondColor = useCallback(
+    (index: number) => {
+      if (!cursor) return
+      // Decided here rather than inside the draft: `update` runs its callback
+      // inside a state updater, which React may invoke more than once.
+      const current = getSlot(song, cursor)
+      const off = current?.color2 === index || (current?.color ?? DEFAULT_COLOR) === index
+      mutateSlot(cursor, (s) => {
+        if (!s.circle) s.circle = 'large'
+        if (off) delete s.color2
+        else s.color2 = index
+      })
+    },
+    [cursor, mutateSlot, song],
+  )
+
+  /** Back to a solid circle, leaving the first rhyme color alone. */
+  const clearSecondColor = useCallback(() => {
+    if (!cursor) return
+    mutateSlot(cursor, (s) => {
+      delete s.color2
+    })
+  }, [cursor, mutateSlot])
 
   const toggleTie = useCallback(() => {
     if (!cursor) return
@@ -223,6 +261,7 @@ export default function App() {
     mutateSlot(cursor, (s) => {
       delete s.circle
       delete s.color
+      delete s.color2
       delete s.tie
       delete s.text
       delete s.tdx
@@ -329,6 +368,25 @@ export default function App() {
       })
     },
     [update],
+  )
+
+  /**
+   * Picking a phrase color. Unlike a rhyme color there is always a tool state
+   * here — a new drag has to know what to paint — but when a highlight is
+   * selected the pick lands on it too, the way a rhyme swatch lands on the
+   * syllable at the cursor. The eraser is a tool only: removing the selected
+   * highlight is what Delete is for.
+   */
+  const pickHighlightColor = useCallback(
+    (c: number | 'erase') => {
+      setHighlightColor(c)
+      if (c === 'erase' || !selectedHighlight) return
+      update((draft) => {
+        const h = draft.highlights.find((x) => x.id === selectedHighlight)
+        if (h) h.color = c
+      })
+    },
+    [selectedHighlight, update],
   )
 
   const deleteSelectedHighlight = useCallback(() => {
@@ -653,6 +711,26 @@ export default function App() {
   const cursorSlot = cursor ? song.bars[cursor.bar]?.slots[slotKey(cursor.beat, cursor.sub)] : undefined
   const [draftText, setDraftText] = useState('')
 
+  /**
+   * The colors the cursor's syllable is wearing, for the toolbar's swatch
+   * markers. A circle with no `color` is drawn in DEFAULT_COLOR, so that is
+   * what the strip marks — otherwise landing on a plain grey circle would show
+   * nothing selected while the score plainly shows grey. A slot with no circle
+   * can still hold a color (clearing the circle keeps it, so putting one back
+   * restores the rhyme); that is marked too, since it is what a color key would
+   * be replacing. Null only when there is nothing there at all.
+   */
+  const shownColor =
+    cursorSlot?.circle ? cursorSlot.color ?? DEFAULT_COLOR : cursorSlot?.color ?? null
+  const shownColor2 = cursorSlot?.color2 ?? null
+
+  // Same idea in phrase mode: with a highlight selected the strip marks that
+  // highlight's color rather than the tool's, so the swatch rows always answer
+  // "what colour is the thing I have selected".
+  const shownHighlightColor: number | 'erase' =
+    (selectedHighlight ? song.highlights.find((h) => h.id === selectedHighlight)?.color : undefined) ??
+    highlightColor
+
   // Reload the input whenever the cursor lands somewhere new.
   const cursorKey = cursor ? `${cursor.bar}:${cursor.beat}:${cursor.sub}` : ''
   useEffect(() => {
@@ -820,6 +898,17 @@ export default function App() {
         e.preventDefault()
         moveBy(e.shiftKey ? -1 : 1)
       } else if (mode === 'annotate') {
+        // Alt first: on Windows/Linux Alt+1 still reports e.key "1", so the
+        // plain-color lookup below would otherwise swallow the second-color
+        // binding. Matching on e.code covers macOS, where ⌥1 reports "¡".
+        if (e.altKey) {
+          const second = colorIndexForKey(e.code, e.key, e.shiftKey)
+          if (second >= 0) {
+            e.preventDefault()
+            applySecondColor(second)
+          }
+          return
+        }
         const colorIndex = COLOR_KEY_HINTS.indexOf(e.key)
         if (colorIndex >= 0) {
           e.preventDefault()
@@ -869,10 +958,10 @@ export default function App() {
       } else if (mode === 'highlight') {
         if (e.key >= '1' && e.key <= '8') {
           e.preventDefault()
-          setHighlightColor(Number(e.key) - 1)
+          pickHighlightColor(Number(e.key) - 1)
         } else if (e.key === '0') {
           e.preventDefault()
-          setHighlightColor('erase')
+          pickHighlightColor('erase')
         } else if (e.key === 'Backspace' || e.key === 'Delete') {
           e.preventDefault()
           deleteSelectedHighlight()
@@ -890,6 +979,7 @@ export default function App() {
   }, [
     addBar,
     applyColor,
+    applySecondColor,
     clearSlot,
     deleteSelectedHighlight,
     doExportPNG,
@@ -899,6 +989,7 @@ export default function App() {
     moveBarEdge,
     moveBy,
     moveRow,
+    pickHighlightColor,
     redo,
     setCircle,
     toggleTie,
@@ -923,10 +1014,13 @@ export default function App() {
         song={song}
         mode={mode}
         setMode={setMode}
-        rhymeColor={rhymeColor}
+        rhymeColor={shownColor}
         setRhymeColor={(i) => applyColor(i)}
-        highlightColor={highlightColor}
-        setHighlightColor={setHighlightColor}
+        rhymeColor2={shownColor2}
+        setRhymeColor2={(i) => applySecondColor(i)}
+        onClearSecondColor={clearSecondColor}
+        highlightColor={shownHighlightColor}
+        setHighlightColor={pickHighlightColor}
         currentDivision={currentDivision}
         hasCursor={cursor != null}
         selectedHighlight={selectedHighlight}
@@ -1068,7 +1162,8 @@ export default function App() {
         </span>
         <span className="hint">
           {mode === 'text' && 'Type a syllable · Space advances · Esc → Annotate'}
-          {mode === 'annotate' && 'A large · S small · D none · Q tie · number keys color'}
+          {mode === 'annotate' &&
+            'A large · S small · D none · Q tie · number keys color · Alt+number second color'}
           {mode === 'highlight' &&
             `Drag across the grid to highlight · ${
               highlightColor === 'erase'

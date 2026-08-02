@@ -45,6 +45,14 @@ through `coerceSong`, repair of damaged files, the notch-level tables, and layou
 `check(...)` there when you touch `model.ts` or `layout.ts` — it is the closest thing to a unit
 suite and it runs in a second.
 
+**To look at a change on a real score, open `docs/example.flowscript.json` — never type a song in by
+hand.** It is the file behind `docs/example.png`: four bars covering everything the notation does
+(mixed divisions, ties, phrase bands, a two-color circle), so a rendering change shows up there
+immediately, and any two sessions are looking at the same score. Entering syllables through the
+overlay `<input>` costs a round trip per keystroke and gives a thinner document than this one.
+When automating the Open dialog, stub `window.showOpenFilePicker` to return the file rather than
+driving the native picker.
+
 `npm audit` reports esbuild advisories inherited from Vite 5. They affect the dev server only, and
 Vite 6+ drops support for Node 21 which is what this machine runs — leave the pin alone unless Node
 is upgraded.
@@ -171,13 +179,27 @@ Owns the cursor, the mode, and every binding. Three modes, because the fast work
 is to sweep the whole verse in one pass per concern:
 
 - **Text** — type syllables, Space advances. Keys route through the overlay `<input>`.
-- **Annotate** — `A`/`S`/`D` set large/small/no circle and advance; number keys apply rhyme colors;
-  `Q` toggles a rhyme tie.
+- **Annotate** — `A`/`S`/`D` set large/small/no circle and advance; number keys apply rhyme colors,
+  the same keys with Alt apply the second one; `Q` toggles a rhyme tie.
 - **Phrase** — drag across subdivisions to highlight.
 
 Space is matched on `e.code === 'Space'` as well as `e.key === ' '` because some input paths deliver
 only the former. The global handler ignores events whose target is an input, so panel fields keep
 working.
+
+The second-color binding is checked **before** the plain color lookup, and matches on `e.code`.
+Both matter: with Alt held macOS reports `e.key` as "¡" rather than "1", and Windows/Linux still
+report "1" — so a `e.key` match would miss on one platform and the plain binding would swallow the
+Alt one on the other. `colorIndexForKey` in `palette.ts` owns that mapping, derived from
+`COLOR_KEY_HINTS` so the help text and both bindings cannot drift.
+
+The toolbar's swatch strips are **derived from the selection, never held as a "current color"**:
+`shownColor` / `shownColor2` come from the slot under the cursor, `shownHighlightColor` from the
+selected highlight. Sweeping a line then shows what each circle is already wearing instead of what
+you last pressed. Phrase mode still keeps `highlightColor` as tool state, because a fresh drag has
+to know what to paint and there is nothing selected to ask — the selection only overrides the
+*marker*, and `<Score>` is still handed the tool color so the drag preview and the eraser test stay
+correct.
 
 Mutations go through `mutateSlot`, which drafts a copy, applies the change, and prunes the slot if
 it ends up empty. History (`useSong`) is plain snapshots — the document is small — with a `mergeKey`
@@ -218,8 +240,26 @@ the song's array, or a custom palette silently renders as the stock pastels.
 A team's preferred scheme is seeded into new songs from localStorage (`loadStoredPalettes`), which
 is the *only* palette state outside the document; it never travels with a file.
 
+The default rhyme palette is eleven pastels, then **four dark colors**, then White. The dark tail
+exists for two-color circles: an all-pastel scheme tops out around 2.3:1 contrast, so striping any
+two of them reads as one muddy tint. The self-test pins both the count of dark entries and the rule
+that no light color is left without a partner it contrasts with, so a palette edit cannot quietly
+undo it.
+
 `COLOR_KEY_HINTS` is both the help text and the keyboard mapping (its index is the palette index),
 so the two cannot drift.
+
+A slot can carry a second rhyme color (`Slot.color2`), for the syllable two rhymes share — the
+overlap in "drop it in the pocket". It renders as diagonal stripes of that color over the `color`
+fill, and the bands come from `stripeBands` in `layout.ts` as real path geometry rather than an SVG
+`<pattern>`. That is not a style preference: a pattern is a `url(#id)` reference, and `withExportSVG`
+mounts a *second* `<Score>` into the same document, so two live SVGs would carry the same ids and a
+fragment reference resolves to whichever element comes first. A path carries its own geometry and
+cannot bind to the wrong node. The stripe period is a fraction of the radius, so a small unstressed
+circle gets the same number of bands as a large one instead of collapsing to a single stripe.
+
+A circle with no `color2` still renders as one `<circle>` element — the striped form is a separate
+branch in `Score.tsx`, so the common case does not grow in the exported file.
 
 `styles.css` styles editor chrome only. If a rule would affect how the score looks, it belongs in
 `Score.tsx` as an attribute instead.

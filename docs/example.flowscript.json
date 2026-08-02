@@ -11,13 +11,13 @@
   "startBar": 1,
   "defaultDivision": 4,
   "ruler": "beats",
-  "rulerLabel": true,
-  "rowGap": 20,
+  "rulerLabel": false,
+  "rowGap": 0,
   "font": "sans",
   "lyricSize": 15,
   "beatWidth": 170,
   "palette": [
-    "#C9C9C9",
+    "#E0E0E0",
     "#FFE44D",
     "#9BE89B",
     "#7FE3F0",
@@ -28,10 +28,10 @@
     "#FF8A80",
     "#8FB8FF",
     "#7FE0C4",
-    "#FFCBA4",
-    "#F09BE0",
-    "#C8C87A",
-    "#D9BE93",
+    "#2F4B9B",
+    "#B02A37",
+    "#1F7A4D",
+    "#6D3B8E",
     "#FFFFFF"
   ],
   "highlightPalette": [
@@ -55,8 +55,8 @@
       ],
       "slots": {
         "0:0": {
-          "text": "Ev-",
-          "circle": "large"
+          "circle": "large",
+          "text": "Ev"
         },
         "0:1": {
           "text": "ery",
@@ -224,12 +224,14 @@
           "text": "drop",
           "circle": "large",
           "color": 7,
+          "color2": 14,
           "tie": true
         },
         "2:1": {
           "text": "it.",
           "circle": "small",
-          "color": 7
+          "color": 7,
+          "color2": 14
         },
         "2:3": {
           "text": "Spot",
@@ -277,12 +279,14 @@
           "text": "pock-",
           "circle": "large",
           "color": 7,
+          "color2": 14,
           "tie": true
         },
         "2:1": {
           "text": "et.",
           "circle": "small",
-          "color": 7
+          "color": 7,
+          "color2": 14
         },
         "1:1": {
           "text": "or",

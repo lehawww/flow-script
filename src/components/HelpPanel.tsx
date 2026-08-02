@@ -37,6 +37,8 @@ const SECTIONS: { title: string; keys: [string, string][] }[] = [
       ['D', 'Clear the circle + advance'],
       ['⇧A / ⇧S / ⇧D', 'Same, without advancing'],
       ['Q', 'Toggle rhyme tie to the next circle'],
+      ['1…0 / ⇧1…5', 'Rhyme color — one solid color'],
+      ['Alt + the same key', 'Add it as a second rhyme (stripes); again removes it'],
       ['Space', 'Advance'],
       ['Backspace', 'Clear circle, color and text'],
     ],
@@ -108,6 +110,13 @@ export default function HelpPanel({
           <p className="note">
             Colors 12–16 are Shift + 1…5. Backtick resets a circle to the default grey. Applying a
             color to a slot with no circle gives it a large one.
+          </p>
+          <p className="note">
+            The <b>2nd</b> row in the toolbar — or <b>Alt</b> (⌥) with any of those keys — adds a{' '}
+            <b>second</b> rhyme color, drawn as diagonal stripes over the first. That's for a
+            syllable two rhymes share: in “drop it in the pocket”, <i>drop</i> and <i>it</i> belong
+            both to the earlier rhyme and to the new multi built on <i>pock-et</i>. Picking the same
+            color again takes it off, as does ⌫ on that row; a plain color key sets one solid color.
           </p>
         </div>
       </div>

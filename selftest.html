@@ -21,10 +21,10 @@
         comparePos, normalizeRange, MIN_LYRIC_SIZE, MAX_LYRIC_SIZE, MIN_BEAT_WIDTH, MAX_BEAT_WIDTH, MIN_ROW_GAP, MAX_ROW_GAP,
         DEFAULT_ROW_GAP,
       } from '/src/model.ts'
-      import { computeLayout, slotAtX, slotStartX, slotEndX } from '/src/layout.ts'
+      import { computeLayout, slotAtX, slotStartX, slotEndX, stripeBands } from '/src/layout.ts'
       import {
-        normalizeHex, coercePalette, rhymeFill, phraseFill, swatchLabel,
-        DEFAULT_PALETTE, DEFAULT_HIGHLIGHTS, defaultPalette, PALETTE_SIZE, HIGHLIGHT_SIZE,
+        normalizeHex, coercePalette, rhymeFill, phraseFill, swatchLabel, colorIndexForKey,
+        COLOR_KEY_HINTS, DEFAULT_PALETTE, DEFAULT_HIGHLIGHTS, defaultPalette, PALETTE_SIZE, HIGHLIGHT_SIZE,
       } from '/src/palette.ts'
 
       const out = document.getElementById('out')
@@ -64,7 +64,7 @@
       song.bars[0].divisions[2] = 3
       song.bars[0].divisions[3] = 8
       song.bars[0].slots[slotKey(0, 0)] = { text: 'I', circle: 'large', color: 1, tie: true }
-      song.bars[0].slots[slotKey(1, 2)] = { text: 'got', circle: 'small', color: 1, tdx: -4, tdy: 6 }
+      song.bars[0].slots[slotKey(1, 2)] = { text: 'got', circle: 'small', color: 1, color2: 5, tdx: -4, tdy: 6 }
       song.bars[1].divisions[3] = 8
       song.bars[1].slots[slotKey(3, 7)] = { text: 'y.', circle: 'large' }
       song.highlights.push({
@@ -252,6 +252,119 @@
           ? true
           : JSON.stringify(back.palette.slice(0, 4))
       })
+
+      /* ---- palette contrast, for two-color circles ---- */
+
+      // WCAG relative luminance / contrast ratio. A striped circle is only
+      // readable as two rhymes if its two colors are far enough apart.
+      const relLum = (hex) => {
+        const h = hex.replace('#', '')
+        const ch = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255)
+        const f = (c) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4))
+        return 0.2126 * f(ch[0]) + 0.7152 * f(ch[1]) + 0.0722 * f(ch[2])
+      }
+      const contrast = (a, b) => {
+        const [x, y] = [relLum(a), relLum(b)].sort((p, q) => q - p)
+        return (x + 0.05) / (y + 0.05)
+      }
+
+      const DARK_MAX = 0.2
+      const PAIR_MIN = 2.5
+
+      check('the default scheme keeps four colors dark enough to stripe against', () => {
+        const darks = DEFAULT_PALETTE.filter((s) => relLum(s.fill) < DARK_MAX)
+        return darks.length >= 4 ? true : `only ${darks.length}: ${darks.map((s) => s.name)}`
+      })
+
+      // The whole point of the dark end: no light color may be left without
+      // something it can be striped against.
+      check('every light default color has a partner it contrasts with', () => {
+        for (const s of DEFAULT_PALETTE) {
+          if (relLum(s.fill) < DARK_MAX) continue
+          const best = Math.max(
+            ...DEFAULT_PALETTE.filter((o) => o.fill !== s.fill).map((o) => contrast(s.fill, o.fill)),
+          )
+          if (best < PAIR_MIN) return `${s.name} tops out at ${best.toFixed(2)}:1`
+        }
+        return true
+      })
+
+      /* ---- two-color circles ---- */
+
+      check('a non-integer second color is dropped, the rest of the slot survives', () => {
+        const bad = JSON.parse(JSON.stringify(song))
+        bad.bars[0].slots['1:2'].color2 = 'blue'
+        const slot = coerceSong(bad).bars[0].slots['1:2']
+        return slot.color2 === undefined && slot.color === 1 && slot.text === 'got'
+          ? true
+          : JSON.stringify(slot)
+      })
+
+      check('a file written before second colors existed loads unchanged', () => {
+        const old = JSON.parse(JSON.stringify(song))
+        delete old.bars[0].slots['1:2'].color2
+        return coerceSong(old).bars[0].slots['1:2'].color2 === undefined ? true : 'invented one'
+      })
+
+      check('an out-of-range second color index still renders something', () =>
+        rhymeFill(defaultPalette(), 99) === DEFAULT_PALETTE[0].fill ? true : 'no fallback')
+
+      // The Alt binding has to match on e.code, because macOS turns ⌥1 into "¡".
+      check('every color key hint has a matching physical key', () => {
+        const codes = [
+          ['Backquote', false], ['Digit1', false], ['Digit2', false], ['Digit3', false],
+          ['Digit4', false], ['Digit5', false], ['Digit6', false], ['Digit7', false],
+          ['Digit8', false], ['Digit9', false], ['Digit0', false],
+          ['Digit1', true], ['Digit2', true], ['Digit3', true], ['Digit4', true], ['Digit5', true],
+        ]
+        if (codes.length !== COLOR_KEY_HINTS.length) return 'hint list changed size'
+        return eq(
+          codes.map(([c, s]) => colorIndexForKey(c, 'ignored', s)),
+          COLOR_KEY_HINTS.map((_, i) => i),
+        )
+      })
+
+      check('an unbound key is not a color', () =>
+        colorIndexForKey('KeyA', 'a', false) === -1 && colorIndexForKey('Digit0', '0', true) === -1
+          ? true
+          : 'matched something it should not')
+
+      // Remote desktops and on-screen keyboards can leave e.code empty.
+      check('a key event with no code falls back to the character', () =>
+        colorIndexForKey('', '3', false) === 3 && colorIndexForKey('', '%', true) === 15
+          ? true
+          : 'no fallback')
+
+      // The stripes are drawn as geometry, not an SVG <pattern>: the export path
+      // renders a second <Score> into the same document, where two elements
+      // sharing an id would make url(#…) resolve to whichever came first.
+      check('stripe bands stay inside the circle', () => {
+        for (const r of [11, 6.5, 3, 22]) {
+          for (const d of stripeBands(r)) {
+            const coords = d.match(/-?\d+(\.\d+)?/g).map(Number)
+            // Every coordinate in the path is a point on or inside the disc.
+            for (const v of coords) {
+              if (Math.abs(v) > r + 0.01) return `r=${r} has a coordinate ${v}`
+            }
+          }
+        }
+        return true
+      })
+
+      check('stripe bands are symmetric about the centre and cover it', () => {
+        const bands = stripeBands(11)
+        if (bands.length % 2 !== 1) return `expected an odd count, got ${bands.length}`
+        if (bands.length < 3) return `too few bands: ${bands.length}`
+        // The middle band straddles x = 0, so a two-color circle never reads as
+        // a solid one of either color.
+        const xs = bands[(bands.length - 1) / 2].match(/M (-?\d+(\.\d+)?)/)
+        return Number(xs[1]) < 0 ? true : `middle band starts at ${xs[1]}`
+      })
+
+      check('stripe count does not change with the circle size', () =>
+        stripeBands(11).length === stripeBands(6.5).length
+          ? true
+          : `${stripeBands(11).length} vs ${stripeBands(6.5).length}`)
 
       check('normalizeHex accepts shorthand, bare and mixed case', () =>
         eq(
