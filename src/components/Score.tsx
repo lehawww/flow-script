@@ -511,9 +511,9 @@ export default function Score(props: Props) {
             row.slots.map((p) => (
               <rect
                 key={`h-${p.bar}-${p.beat}-${p.sub}`}
-                x={p.x - p.cell / 2}
+                x={p.hitX0}
                 y={row.top}
-                width={p.cell}
+                width={p.hitX1 - p.hitX0}
                 height={row.bottom - row.top}
                 fill="transparent"
                 style={{ cursor: 'pointer' }}
@@ -589,17 +589,17 @@ export default function Score(props: Props) {
         return (
           <g data-editor-only="true" pointerEvents="none">
             <rect
-              x={p.x - p.cell / 2}
+              x={p.hitX0}
               y={row.top}
-              width={p.cell}
+              width={p.hitX1 - p.hitX0}
               height={row.bottom - row.top}
               fill="#2563EB"
               fillOpacity={0.08}
             />
             <rect
-              x={p.x - p.cell / 2 + 0.5}
+              x={p.hitX0 + 0.5}
               y={row.top + 0.5}
-              width={p.cell - 1}
+              width={p.hitX1 - p.hitX0 - 1}
               height={row.bottom - row.top - 1}
               fill="none"
               stroke="#2563EB"

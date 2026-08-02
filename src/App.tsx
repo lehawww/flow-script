@@ -19,6 +19,7 @@ import Toolbar from './components/Toolbar'
 import { computeLayout } from './layout'
 import {
   allSlotRefs,
+  beatSubdivisions,
   coerceSong,
   comparePos,
   getSlot,
@@ -28,6 +29,8 @@ import {
   normalizeRange,
   refIndex,
   slotKey,
+  subAtFraction,
+  subCount,
   type CircleKind,
   type Division,
   type GridPos,
@@ -153,7 +156,7 @@ export default function App() {
         const bar = Math.min(song.bars.length - 1, Math.max(0, cur.bar + delta))
         if (bar === cur.bar) return cur
         const div = song.bars[bar].divisions[cur.beat] ?? song.defaultDivision
-        return { bar, beat: cur.beat, sub: Math.min(cur.sub, div - 1) }
+        return { bar, beat: cur.beat, sub: Math.min(cur.sub, subCount(div) - 1) }
       })
     },
     [refs, song],
@@ -289,19 +292,29 @@ export default function App() {
 
   /**
    * Re-divide a beat, keeping annotations whose position survives exactly.
-   * A slot at sub/oldDiv of the beat maps to newSub = sub * newDiv / oldDiv;
-   * if that is not a whole number the position does not exist under the new
-   * division and the annotation is dropped.
+   * A slot is mapped by *when* it falls in the beat, not by its index: it keeps
+   * its annotation only if the new grid has a notch at the same instant, and is
+   * dropped otherwise. An 8th survives 4 → 8 and a 16th does not survive 4 → 3,
+   * and going to a "3+2" keeps whichever half still lines up.
    */
   const setDivision = useCallback(
     (div: Division, scope: 'beat' | 'bar' | 'all') => {
       if (!cursor) return
+      const lastSub = subCount(div) - 1
+      // Where the cursor ends up. Every scope re-divides the beat it is sitting
+      // in, so it moves with its own syllable — landing on the notch at the same
+      // instant, or on the last one when that instant is gone.
+      const cursorAt = beatSubdivisions(
+        song.bars[cursor.bar]?.divisions[cursor.beat] ?? song.defaultDivision,
+      )[cursor.sub]?.at
+      const cursorSub = cursorAt === undefined ? -1 : subAtFraction(div, cursorAt)
       update((draft) => {
         const apply = (barIndex: number, beat: number) => {
           const bar = draft.bars[barIndex]
           if (!bar) return
           const oldDiv = bar.divisions[beat] ?? draft.defaultDivision
           if (oldDiv === div) return
+          const oldSubs = beatSubdivisions(oldDiv)
           bar.divisions[beat] = div
           const next: Record<string, Slot> = {}
           for (const [key, value] of Object.entries(bar.slots)) {
@@ -310,8 +323,9 @@ export default function App() {
               next[key] = value
               continue
             }
-            const mapped = (s * div) / oldDiv
-            if (Number.isInteger(mapped) && mapped < div) next[slotKey(beat, mapped)] = value
+            const at = oldSubs[s]?.at
+            const mapped = at === undefined ? -1 : subAtFraction(div, at)
+            if (mapped >= 0) next[slotKey(beat, mapped)] = value
           }
           bar.slots = next
 
@@ -320,7 +334,7 @@ export default function App() {
           draft.highlights.forEach((h) => {
             for (const edge of [h.start, h.end]) {
               if (edge.bar === barIndex && edge.beat === beat) {
-                edge.sub = Math.min(edge.sub, div - 1)
+                edge.sub = Math.min(edge.sub, lastSub)
               }
             }
           })
@@ -336,9 +350,11 @@ export default function App() {
           })
         }
       })
-      setCursor((cur) => (cur ? { ...cur, sub: Math.min(cur.sub, div - 1) } : cur))
+      setCursor((cur) =>
+        cur ? { ...cur, sub: cursorSub >= 0 ? cursorSub : Math.min(cur.sub, lastSub) } : cur,
+      )
     },
-    [cursor, update],
+    [cursor, song, update],
   )
 
   /* ------------------------------------------------------------------ */
@@ -545,7 +561,7 @@ export default function App() {
           for (const edge of [h.start, h.end]) {
             edge.beat = Math.min(edge.beat, n - 1)
             const div = draft.bars[edge.bar]?.divisions[edge.beat] ?? draft.defaultDivision
-            edge.sub = Math.min(edge.sub, div - 1)
+            edge.sub = Math.min(edge.sub, subCount(div) - 1)
           }
         })
       })
@@ -710,6 +726,18 @@ export default function App() {
 
   const cursorSlot = cursor ? song.bars[cursor.bar]?.slots[slotKey(cursor.beat, cursor.sub)] : undefined
   const [draftText, setDraftText] = useState('')
+  /**
+   * The same value as `draftText`, kept in a ref so anything that takes the
+   * input away can still read what was typed. The overlay does not always get
+   * a blur to commit on: the score's hit targets preventDefault on pointerdown
+   * so a drag cannot steal focus, and a mode change unmounts the input while it
+   * is still focused — neither fires one.
+   */
+  const draftRef = useRef('')
+  const setDraft = useCallback((value: string) => {
+    draftRef.current = value
+    setDraftText(value)
+  }, [])
 
   /**
    * The colors the cursor's syllable is wearing, for the toolbar's swatch
@@ -731,12 +759,26 @@ export default function App() {
     (selectedHighlight ? song.highlights.find((h) => h.id === selectedHighlight)?.color : undefined) ??
     highlightColor
 
-  // Reload the input whenever the cursor lands somewhere new.
+  /**
+   * The input is a view of the slot under the cursor, so it reloads both when
+   * the cursor lands somewhere new *and* when the syllable it is showing
+   * changes underneath it — which is what opening a file, starting a new song
+   * and undo all do while the cursor stays where it is.
+   *
+   * Keying on the position alone was a way to lose text: open a file with the
+   * cursor still on its landing slot and the position never changes, so the box
+   * kept the previous document's empty draft over a slot that now had a
+   * syllable — and the next flush wrote that empty draft back over it.
+   *
+   * Typing does not trip this. `cursorText` only moves when the document does,
+   * and in text mode the only thing that writes it is a commit of this same
+   * draft.
+   */
   const cursorKey = cursor ? `${cursor.bar}:${cursor.beat}:${cursor.sub}` : ''
+  const cursorText = cursorSlot?.text ?? ''
   useEffect(() => {
-    setDraftText(cursorSlot?.text ?? '')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cursorKey])
+    setDraft(cursorText)
+  }, [cursorKey, cursorText, setDraft])
 
   useEffect(() => {
     if (mode === 'text') inputRef.current?.focus()
@@ -759,6 +801,15 @@ export default function App() {
     [cursor, cursorSlot, mutateSlot],
   )
 
+  /**
+   * Save whatever is in the overlay input. Safe to call from anywhere that is
+   * about to move, hide or unmount it — `commitText` is a no-op when the text
+   * has not changed, so an extra call after a real blur costs nothing.
+   */
+  const flushText = useCallback(() => {
+    if (mode === 'text') commitText(draftRef.current)
+  }, [mode, commitText])
+
   /** Clicked off the score — drop whatever the current mode has selected. */
   const clearSelection = useCallback(() => {
     setSelectedHighlight(null)
@@ -766,11 +817,33 @@ export default function App() {
     // disable the bar and division controls with nothing on screen to explain
     // why. The highlight is the only selection that mode shows.
     if (mode === 'highlight') return
-    // The overlay input unmounts along with the cursor, and removing a focused
-    // element is not a reliable blur — commit the pending syllable by hand.
-    if (mode === 'text') commitText(draftText)
+    flushText()
     setCursor(null)
-  }, [mode, commitText, draftText])
+  }, [mode, flushText])
+
+  /**
+   * Moving the cursor by clicking a slot has to keep the syllable being typed:
+   * the click never blurs the input (see `draftRef`), and the cursor landing
+   * somewhere new reloads the input from the slot it lands on, so an uncommitted
+   * draft would simply be overwritten.
+   */
+  const selectSlot = useCallback(
+    (ref: SlotRef) => {
+      flushText()
+      setCursor(ref)
+      setSelectedHighlight(null)
+    },
+    [flushText],
+  )
+
+  /** Modes are passes over the same document; a half-typed syllable survives one. */
+  const switchMode = useCallback(
+    (next: Mode) => {
+      flushText()
+      setMode(next)
+    },
+    [flushText],
+  )
 
   const onTextKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const el = e.currentTarget
@@ -779,31 +852,31 @@ export default function App() {
 
     if (e.key === ' ' || e.code === 'Space' || e.key === 'Tab') {
       e.preventDefault()
-      commitText(draftText)
+      flushText()
       moveBy(e.shiftKey ? -1 : 1)
     } else if (e.key === 'Enter') {
       e.preventDefault()
-      commitText(draftText)
+      flushText()
       moveRow(1)
     } else if (e.key === 'Escape') {
       e.preventDefault()
-      commitText(draftText)
+      flushText()
       setMode('annotate')
     } else if (e.key === 'ArrowLeft' && atStart) {
       e.preventDefault()
-      commitText(draftText)
+      flushText()
       moveBy(-1)
     } else if (e.key === 'ArrowRight' && atEnd) {
       e.preventDefault()
-      commitText(draftText)
+      flushText()
       moveBy(1)
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
-      commitText(draftText)
+      flushText()
       moveRow(-1)
     } else if (e.key === 'ArrowDown') {
       e.preventDefault()
-      commitText(draftText)
+      flushText()
       moveRow(1)
     } else if (e.key === 'Backspace' && draftText === '') {
       e.preventDefault()
@@ -854,17 +927,17 @@ export default function App() {
         }
         if (k === '1') {
           e.preventDefault()
-          setMode('text')
+          switchMode('text')
           return
         }
         if (k === '2') {
           e.preventDefault()
-          setMode('annotate')
+          switchMode('annotate')
           return
         }
         if (k === '3') {
           e.preventDefault()
-          setMode('highlight')
+          switchMode('highlight')
           return
         }
         return
@@ -952,7 +1025,7 @@ export default function App() {
             break
           case 'Enter':
             e.preventDefault()
-            setMode('text')
+            switchMode('text')
             break
         }
       } else if (mode === 'highlight') {
@@ -970,7 +1043,7 @@ export default function App() {
           setSelectedHighlight(null)
         }
       } else if (mode === 'text' && e.key === 'Escape') {
-        setMode('annotate')
+        switchMode('annotate')
       }
     }
 
@@ -992,6 +1065,7 @@ export default function App() {
     pickHighlightColor,
     redo,
     setCircle,
+    switchMode,
     toggleTie,
     undo,
   ])
@@ -1013,7 +1087,7 @@ export default function App() {
       <Toolbar
         song={song}
         mode={mode}
-        setMode={setMode}
+        setMode={switchMode}
         rhymeColor={shownColor}
         setRhymeColor={(i) => applyColor(i)}
         rhymeColor2={shownColor2}
@@ -1091,10 +1165,7 @@ export default function App() {
               editingRef={mode === 'text' ? cursor : null}
               selectedHighlight={selectedHighlight}
               highlightColor={highlightColor}
-              onSelectSlot={(ref) => {
-                setCursor(ref)
-                setSelectedHighlight(null)
-              }}
+              onSelectSlot={selectSlot}
               onClearSelection={clearSelection}
               onMoveText={onMoveText}
               onCreateHighlight={createHighlight}
@@ -1110,9 +1181,9 @@ export default function App() {
                 value={draftText}
                 spellCheck={false}
                 autoComplete="off"
-                onChange={(e) => setDraftText(e.target.value)}
+                onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={onTextKeyDown}
-                onBlur={() => commitText(draftText)}
+                onBlur={flushText}
                 style={{
                   left: cursorPos.x - Math.max(cursorPos.cell, 54) / 2 + (cursorSlot?.tdx ?? 0),
                   top: cursorRow.textY - layout.m.textSize + (cursorSlot?.tdy ?? 0),
@@ -1156,8 +1227,12 @@ export default function App() {
 
       <footer className="statusbar">
         <span className="mono">
-          {cursor
-            ? `bar ${song.startBar + cursor.bar} · beat ${cursor.beat + 1} · ${cursor.sub + 1}/${currentDivision}`
+          {/* The count is the number of notches; a compound division names
+              itself as well, since 1/5 alone does not say which half you are in. */}
+          {cursor && currentDivision
+            ? `bar ${song.startBar + cursor.bar} · beat ${cursor.beat + 1} · ` +
+              `${cursor.sub + 1}/${subCount(currentDivision)}` +
+              (typeof currentDivision === 'string' ? ` (${currentDivision})` : '')
             : 'no slot selected'}
         </span>
         <span className="hint">

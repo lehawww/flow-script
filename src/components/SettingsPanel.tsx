@@ -15,7 +15,7 @@ import {
   MIN_BEAT_WIDTH,
   MIN_ROW_GAP,
   MIN_LYRIC_SIZE,
-  type Division,
+  parseDivision,
   type Song,
   type SongHeader,
 } from '../model'
@@ -104,7 +104,9 @@ export default function SettingsPanel({ song, onHeader, onPatch, onBeatsPerBar, 
           Default division
           <select
             value={song.defaultDivision}
-            onChange={(e) => onPatch({ defaultDivision: Number(e.target.value) as Division })}
+            // Not Number(): a compound division's value is "3+2", which would
+            // come back NaN and wipe the setting.
+            onChange={(e) => onPatch({ defaultDivision: parseDivision(e.target.value) })}
           >
             {DIVISIONS.map((d) => (
               <option key={d} value={d}>

@@ -68,7 +68,8 @@ A `Song` is bars → beats → subdivisions. The addressing vocabulary is used e
 
 - `bar` indexes `song.bars`; the displayed label is `song.startBar + bar` (may start at 0).
 - `beat` is `0 .. beatsPerBar-1`.
-- `sub` indexes a beat's subdivisions, `0 .. bar.divisions[beat]-1`.
+- `sub` indexes a beat's subdivisions, `0 .. subCount(bar.divisions[beat])-1`. Do not assume the
+  division *is* the count, or that subs are evenly spaced — see compound divisions below.
 
 A `(bar, beat, sub)` triple is a **slot** (as a highlight endpoint, a `GridPos`) — phrase highlights
 select at subdivision resolution, not beat resolution, so `comparePos` / `normalizeRange` in
@@ -83,6 +84,28 @@ triplets and 16ths. `NOTCH_LEVELS` maps each division to the visual weight of it
 level 0 is the beat (tallest, thickest), rising numbers are shorter and thinner. This table is the
 spec — `4: [0,2,1,2]` is what makes the "&" of a 16th-note beat taller than the "e" and "a".
 
+**A division can also cut the beat in half first.** The four `CompoundDivision` values — `'3+2'`,
+`'2+3'`, `'3+4'`, `'4+3'` — divide each half of a beat on its own, which is how a flow that goes
+triplet on the first 8th and straight 16ths on the second gets written down. Only the mixed pairs
+exist: the even ones are already uniform divisions (2+2 is 4, 3+3 is 6, 4+4 is 8), and one spelling
+per grid is what lets `bar.divisions[beat] === div` mean what it says. Strings rather than `[3, 2]`
+tuples for the same reason — the identity comparisons in `setDivision`, the toolbar's active-button
+test and `parseDivision` would all quietly fail on arrays.
+
+Their notch levels are not authored anywhere. `beatSubdivisions` reads each half out of the uniform
+division that half *would* be if both matched (a half in 3 is the matching half of division 6), so
+the mixed grids cannot drift from the even ones and the mid-beat notch keeps the level that marks
+the half of a beat. It returns `{ at, width, level }` per notch as fractions of the beat, cached per
+division, and it is the only correct way to ask where a beat's notches are.
+
+Two consequences worth holding on to. **`subCount(div)` is the number of notches; the division is
+not a count** once it is compound — every `sub < div` / `div - 1` is a bug. And **re-dividing maps
+by instant, not by index**: `setDivision` keeps an annotation only where `subAtFraction` finds a
+notch at the same fraction of the beat under the new division. That is the same rule as the old
+`sub * newDiv / oldDiv` for two uniform divisions — an 8th survives 4 → 8, a 16th does not survive
+4 → 3 — and it is the only one that also answers 4 → `'3+2'`, where the second half's 16ths live on
+and the first half's do not.
+
 `coerceSong` is the trust boundary for anything loaded from disk. It repairs rather than rejects:
 out-of-range slots are dropped, missing division arrays are filled from `defaultDivision`,
 highlights are clamped to the bars that exist. Every field a future version adds must be handled
@@ -95,6 +118,15 @@ hit-testing and export all read from it, so on-screen and exported layout cannot
 
 **Bars never wrap.** A bar is always one row of `beatsPerBar * pxPerBeat`; the viewport scrolls
 horizontally instead. This is deliberate — what the user sees must equal what gets exported.
+
+**A slot's `cell` is a duration, and cells within a beat need not match.** Positions come from
+`beatSubdivisions`, not from a constant step, because a compound division gives the two halves of a
+beat different cell widths. `cell` stays the room the subdivision itself lasts for — `slotEndX`
+builds a phrase highlight's far edge from `x + cell`, so anything else puts the band in the wrong
+place. The grab zone is separate: `hitX0`/`hitX1` run to the midpoint of each neighbour, which is
+half a cell either way whenever the neighbours match (so an evenly divided beat is untouched) and
+is what stops a wide slot's target from reaching across a narrow neighbour's notch. Both are
+asserted in the self-test.
 
 `BASE` holds fixed metrics, but three of them are overridden from the document at the top of
 `computeLayout`: `textSize` from `song.lyricSize`, `pxPerBeat` from `song.beatWidth`, and `rowGap`
@@ -183,9 +215,23 @@ is to sweep the whole verse in one pass per concern:
   the same keys with Alt apply the second one; `Q` toggles a rhyme tie.
 - **Phrase** — drag across subdivisions to highlight.
 
+The toolbar follows the mode, and **the ruler controls — `Divide beat` and `Bars` — belong to
+Text**. Laying out the grid is part of writing onto it; the other two modes are passes over a grid
+that already exists, so they get those rows back for their own marks. `Ctrl+Enter` still adds a bar
+from anywhere.
+
 Space is matched on `e.code === 'Space'` as well as `e.key === ' '` because some input paths deliver
 only the former. The global handler ignores events whose target is an input, so panel fields keep
 working.
+
+**The overlay input cannot rely on blur to save.** The score's hit targets `preventDefault` on
+pointerdown so a drag never steals focus, and a mode change unmounts the input while it is still
+focused — neither fires a blur, and the cursor landing somewhere new reloads the input from the slot
+it lands on, so an uncommitted syllable would simply be overwritten. `flushText` reads the pending
+value out of `draftRef` (a ref, because these paths run before a re-render) and is called by
+everything that moves, hides or unmounts the input: `selectSlot`, `switchMode`, `clearSelection` and
+every cursor-moving key. `commitText` is a no-op when the text has not changed, so calling it after
+a real blur costs nothing — when in doubt, flush.
 
 The second-color binding is checked **before** the plain color lookup, and matches on `e.code`.
 Both matter: with Alt held macOS reports `e.key` as "¡" rather than "1", and Windows/Linux still

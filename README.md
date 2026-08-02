@@ -46,9 +46,11 @@ subdivision resolution and may span bars, so a phrase can begin on the "e" of on
 the "&" of another.
 
 The ruler itself is flexible. Any number of beats per bar, and **division is set per beat**, so a
-single bar can put a triplet against surrounding 16ths. Notch height and stroke weight follow metric
-depth, so the "&" of a beat reads taller and heavier than the "e" and the "a" — the hierarchy is
-visible at a glance rather than something you have to count out.
+single bar can put a triplet against surrounding 16ths. A beat can also be **split at its half**,
+with each half divided on its own — a triplet across the first 8th and straight 16ths across the
+second, and the three other pairings. Notch height and stroke weight follow metric depth, so the "&"
+of a beat reads taller and heavier than the "e" and the "a" — the hierarchy is visible at a glance
+rather than something you have to count out.
 
 ## Getting started
 
@@ -173,9 +175,18 @@ Open **Song settings** in the toolbar.
 - **Lyric font** — sans, or serif italic in the style of published transcriptions.
 - **Lyric size**.
 
-**Setting division per beat:** select a position in that beat, then use the toolbar's **Divide beat**
-buttons — 1, 2, 3, 4, 6 or 8. `→ bar` applies your choice to every beat in the current bar, `→ all`
-to the whole song.
+**Setting division per beat:** in Text mode, select a position in that beat, then use the toolbar's
+**Divide beat** buttons — 1, 2, 3, 4, 6 or 8. `→ bar` applies your choice to every beat in the
+current bar, `→ all` to the whole song. The **Divide beat** and **Bars** rows belong to Text mode:
+you lay the grid out while you are writing onto it, and Annotate and Phrase get their rows back for
+the marks they are there to make.
+
+**Splitting a beat at its half:** the **halves** buttons next to them — `3+2`, `2+3`, `3+4`, `4+3` —
+divide the first half of the beat and the second half differently. `3+2` puts a triplet across the
+first 8th and two 16ths across the second; `3+3` and `2+2` are not listed because they are already
+the plain 6 and 4. The half of the beat keeps its own notch weight, so you can still see where the
+"&" falls. Re-dividing keeps every syllable that still lands on a notch and drops the rest, so
+moving a straight-16th beat to `3+2` keeps the downbeat, the "&" and the "a" and lets the "e" go.
 
 A note on size and width: they work together. Turning the lyric size up without also widening the
 beat will run long syllables into their neighbours, since a 16th only owns a quarter of a beat.

@@ -4,7 +4,9 @@
  * Coordinate vocabulary used throughout the app:
  *   bar   - index into song.bars (0-based). Displayed label is song.startBar + bar.
  *   beat  - index into a bar, 0 .. song.beatsPerBar-1.
- *   sub   - index into a beat's subdivisions, 0 .. bar.divisions[beat]-1.
+ *   sub   - index into a beat's subdivisions, 0 .. subCount(bar.divisions[beat])-1.
+ *           Even spacing is not guaranteed: a beat may be divided in half first
+ *           and each half divided differently ("3+2").
  *
  * A (bar, beat, sub) triple is a "slot": one notch on the ruler that can hold a
  * syllable of text and/or a stress circle. Slots are stored sparsely — most
@@ -20,7 +22,20 @@ import {
   DEFAULT_PALETTE,
 } from './palette'
 
-export type Division = 1 | 2 | 3 | 4 | 6 | 8
+/** A beat cut into `n` even subdivisions. */
+export type UniformDivision = 1 | 2 | 3 | 4 | 6 | 8
+
+/**
+ * A beat cut in half first, each half then divided on its own — `'3+2'` is a
+ * triplet across the first 8th and two 16ths across the second.
+ *
+ * Only the mixed pairs are listed: the even ones already exist as uniform
+ * divisions (2+2 is 4, 3+3 is 6, 4+4 is 8), and having one spelling per grid
+ * keeps `===` comparisons of a beat's division meaningful.
+ */
+export type CompoundDivision = '3+2' | '2+3' | '3+4' | '4+3'
+
+export type Division = UniformDivision | CompoundDivision
 
 export const DEFAULT_LYRIC_SIZE = 15
 export const MIN_LYRIC_SIZE = 7
@@ -54,7 +69,22 @@ export function clampRowGap(n: unknown): number {
   return Math.min(MAX_ROW_GAP, Math.max(MIN_ROW_GAP, v))
 }
 
-export const DIVISIONS: Division[] = [1, 2, 3, 4, 6, 8]
+export const UNIFORM_DIVISIONS: UniformDivision[] = [1, 2, 3, 4, 6, 8]
+export const COMPOUND_DIVISIONS: CompoundDivision[] = ['3+2', '2+3', '3+4', '4+3']
+export const DIVISIONS: Division[] = [...UNIFORM_DIVISIONS, ...COMPOUND_DIVISIONS]
+
+/**
+ * Narrows a value from a `<select>` or a loaded file to a Division. A numeric
+ * division may arrive as the string a `<select>` gives back, so `"8"` is taken;
+ * anything that is not a number or a string is not coerced into one, or
+ * `true` and `[4]` would both come out as real divisions.
+ */
+export function parseDivision(v: unknown, fallback: Division = 4): Division {
+  if (COMPOUND_DIVISIONS.includes(v as CompoundDivision)) return v as CompoundDivision
+  if (typeof v !== 'number' && typeof v !== 'string') return fallback
+  const n = Number(v)
+  return UNIFORM_DIVISIONS.includes(n as UniformDivision) ? (n as UniformDivision) : fallback
+}
 
 /** Large circle = stressed syllable, small circle = unstressed. */
 export type CircleKind = 'large' | 'small'
@@ -171,13 +201,81 @@ export interface Song {
  * Div 3 gives the two off-beats the same small level (triplets are even).
  * Div 8 halves repeatedly, so each binary depth gets its own level.
  */
-export const NOTCH_LEVELS: Record<Division, number[]> = {
+export const NOTCH_LEVELS: Record<UniformDivision, number[]> = {
   1: [0],
   2: [0, 1],
   3: [0, 2, 2],
   4: [0, 2, 1, 2],
   6: [0, 2, 2, 1, 2, 2],
   8: [0, 3, 2, 3, 1, 3, 2, 3],
+}
+
+/** One notch: where it sits in its beat and how much of the beat it owns, both as fractions. */
+export interface SubPos {
+  /** Distance from the start of the beat, 0 <= at < 1. */
+  at: number
+  /** Width of this subdivision — not constant once a beat's halves differ. */
+  width: number
+  /** Index into notchH / notchW. */
+  level: number
+}
+
+/**
+ * A compound division's halves are not given their own level table. Each half
+ * is read out of the uniform division it *would* be if both halves matched —
+ * a half in 3 is the corresponding half of division 6 — so the mixed grids and
+ * the even ones cannot drift apart, and the middle notch keeps the level that
+ * marks the half of a beat.
+ */
+function halfLevels(half: number, second: boolean): number[] {
+  const levels = NOTCH_LEVELS[(half * 2) as UniformDivision]
+  return second ? levels.slice(half) : levels.slice(0, half)
+}
+
+// Every subdivision table depends only on the division, so one is built per
+// division and reused: computeLayout asks for one per beat on every render.
+const subCache = new Map<Division, readonly SubPos[]>()
+
+/** The notches of one beat, in order. Treat the result as read-only. */
+export function beatSubdivisions(div: Division): readonly SubPos[] {
+  const cached = subCache.get(div)
+  if (cached) return cached
+  const out: SubPos[] = []
+  if (typeof div === 'number') {
+    const levels = NOTCH_LEVELS[div]
+    for (let i = 0; i < div; i++) {
+      out.push({ at: i / div, width: 1 / div, level: levels[i] ?? levels[levels.length - 1] })
+    }
+  } else {
+    const [a, b] = div.split('+').map(Number)
+    const first = halfLevels(a, false)
+    const second = halfLevels(b, true)
+    for (let i = 0; i < a; i++) out.push({ at: i / (a * 2), width: 1 / (a * 2), level: first[i] })
+    for (let i = 0; i < b; i++) {
+      out.push({ at: 0.5 + i / (b * 2), width: 1 / (b * 2), level: second[i] })
+    }
+  }
+  const frozen = Object.freeze(out)
+  subCache.set(div, frozen)
+  return frozen
+}
+
+/** How many notches a beat carries. Equals the division itself when it is uniform. */
+export function subCount(div: Division): number {
+  return beatSubdivisions(div).length
+}
+
+/**
+ * The notch sitting exactly `at` through the beat, or -1 if this division has
+ * none there. This is what decides whether an annotation survives a re-division:
+ * a position is kept only if the new grid has a notch at the same instant.
+ */
+export function subAtFraction(div: Division, at: number): number {
+  const subs = beatSubdivisions(div)
+  for (let i = 0; i < subs.length; i++) {
+    if (Math.abs(subs[i].at - at) < 1e-9) return i
+  }
+  return -1
 }
 
 /* ------------------------------------------------------------------ */
@@ -207,7 +305,8 @@ export function allSlotRefs(song: Song): SlotRef[] {
   song.bars.forEach((bar, b) => {
     for (let beat = 0; beat < song.beatsPerBar; beat++) {
       const div = bar.divisions[beat] ?? song.defaultDivision
-      for (let sub = 0; sub < div; sub++) out.push({ bar: b, beat, sub })
+      const n = subCount(div)
+      for (let sub = 0; sub < n; sub++) out.push({ bar: b, beat, sub })
     }
   })
   return out
@@ -300,12 +399,12 @@ export function coerceSong(raw: unknown): Song {
   if (!Array.isArray(r.bars)) throw new Error('File is missing a "bars" array.')
 
   const beatsPerBar = Math.max(1, Math.round(Number(r.beatsPerBar) || 4))
-  const defaultDivision = (DIVISIONS.includes(r.defaultDivision) ? r.defaultDivision : 4) as Division
+  const defaultDivision = parseDivision(r.defaultDivision, 4)
 
   const bars: Bar[] = r.bars.map((b: any): Bar => {
     const divisions: Division[] = Array.from({ length: beatsPerBar }, (_, i) => {
       const d = Array.isArray(b?.divisions) ? b.divisions[i] : undefined
-      return (DIVISIONS.includes(d) ? d : defaultDivision) as Division
+      return parseDivision(d, defaultDivision)
     })
     const slots: Record<string, Slot> = {}
     const rawSlots = b?.slots && typeof b.slots === 'object' ? b.slots : {}
@@ -313,7 +412,7 @@ export function coerceSong(raw: unknown): Song {
       const [beat, sub] = key.split(':').map(Number)
       if (!Number.isInteger(beat) || !Number.isInteger(sub)) continue
       if (beat < 0 || beat >= beatsPerBar) continue
-      if (sub < 0 || sub >= divisions[beat]) continue
+      if (sub < 0 || sub >= subCount(divisions[beat])) continue
       const v = value as any
       const slot: Slot = {}
       if (typeof v?.text === 'string') slot.text = v.text
@@ -338,11 +437,11 @@ export function coerceSong(raw: unknown): Song {
    * subdivision, end at the last — so an older file looks unchanged on screen.
    */
   const clampSub = (bar: number, beat: number, n: unknown, whenMissing: 'first' | 'last') => {
-    const div = bars[bar]?.divisions[beat] ?? defaultDivision
+    const last = subCount(bars[bar]?.divisions[beat] ?? defaultDivision) - 1
     if (n === undefined || n === null || !Number.isFinite(Number(n))) {
-      return whenMissing === 'last' ? div - 1 : 0
+      return whenMissing === 'last' ? last : 0
     }
-    return Math.min(div - 1, Math.max(0, Math.round(Number(n))))
+    return Math.min(last, Math.max(0, Math.round(Number(n))))
   }
 
   const gridPos = (raw: any, whenMissing: 'first' | 'last'): GridPos => {

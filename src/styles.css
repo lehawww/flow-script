@@ -45,6 +45,9 @@ body { background: var(--bg); overflow: hidden; }
 .toolbar .spacer { flex: 1; }
 .toolbar .group { display: flex; align-items: center; gap: 4px; }
 .toolbar .lbl { color: var(--muted); margin-right: 4px; white-space: nowrap; }
+/* A label that starts a second run of buttons inside one group, so the run it
+   introduces reads as separate from the one before it. */
+.toolbar .lbl.sep { margin-left: 6px; }
 .toolbar .filename { color: var(--muted); font-variant-numeric: tabular-nums; }
 
 button, select, input[type='number'], input[type='text'], .slot-input {
