@@ -584,6 +584,7 @@ export default function App() {
               selectedHighlight={null}
               highlightColor={0}
               onSelectSlot={noop}
+              onClearSelection={noop}
               onMoveText={noop}
               onCreateHighlight={noop}
               onEraseHighlights={noop}
@@ -679,6 +680,19 @@ export default function App() {
     },
     [cursor, cursorSlot, mutateSlot],
   )
+
+  /** Clicked off the score — drop whatever the current mode has selected. */
+  const clearSelection = useCallback(() => {
+    setSelectedHighlight(null)
+    // Phrase mode does not draw the cursor, so dropping it there would only
+    // disable the bar and division controls with nothing on screen to explain
+    // why. The highlight is the only selection that mode shows.
+    if (mode === 'highlight') return
+    // The overlay input unmounts along with the cursor, and removing a focused
+    // element is not a reliable blur — commit the pending syllable by hand.
+    if (mode === 'text') commitText(draftText)
+    setCursor(null)
+  }, [mode, commitText, draftText])
 
   const onTextKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const el = e.currentTarget
@@ -959,7 +973,21 @@ export default function App() {
       />
 
       <div className="workspace">
-        <div className="canvas-scroll" ref={scrollRef}>
+        <div
+          className="canvas-scroll"
+          ref={scrollRef}
+          onPointerDown={(e) => {
+            // Only the grey surround, never a click that reached the score:
+            // anything inside the stage is this element's descendant.
+            if (e.target !== e.currentTarget) return
+            // Scrollbars report a pointerdown on the element itself; grabbing
+            // one is not a click on the background.
+            const el = e.currentTarget
+            if (e.nativeEvent.offsetX > el.clientWidth || e.nativeEvent.offsetY > el.clientHeight)
+              return
+            clearSelection()
+          }}
+        >
           <div className="canvas-stage" style={{ width: layout.width, height: layout.height }}>
             <Score
               song={song}
@@ -973,6 +1001,7 @@ export default function App() {
                 setCursor(ref)
                 setSelectedHighlight(null)
               }}
+              onClearSelection={clearSelection}
               onMoveText={onMoveText}
               onCreateHighlight={createHighlight}
               onEraseHighlights={eraseHighlights}

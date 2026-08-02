@@ -92,9 +92,18 @@ horizontally instead. This is deliberate — what the user sees must equal what 
 `computeLayout`: `textSize` from `song.lyricSize`, `pxPerBeat` from `song.beatWidth`, and `rowGap`
 from `song.rowGap`. All three are document settings, not view state — unlike zoom, they change the
 exported artwork, so they must be applied before anything derived (`rowPitch`, row tops) is
-computed. The row's `belowBaseline` grows with the lyric size so taller text cannot collide with the
-next bar; the horizontal equivalent is the user's job via beat width, since only they know how long
-their syllables are.
+computed. The row's text zone grows with the lyric size so taller text cannot collide with the next
+bar; the horizontal equivalent is the user's job via beat width, since only they know how long their
+syllables are.
+
+**The row block is the ink plus `rowPad` of air on each side, and the two sides must stay equal.**
+`aboveBaseline` and `belowBaseline` are computed from what they have to hold — the beat notch (or a
+large circle) above, the circle plus the lyric's baseline offset and descenders below — never
+floored, because a floor that bound on one side only would silently reintroduce the asymmetry. A
+phrase highlight fills the row block exactly, so this is what makes the highlight read as centred on
+the marks instead of trailing a slab of colour under the lyrics, and it is what lets consecutive
+bars' highlights meet flush when vertical padding is 0 (the default) rather than showing a gap.
+Change either zone and both invariants break together; the self-test covers each.
 
 **Stroke weight carries the hierarchy.** `notchW` is `[1.9, 1.45, 1, 0.8]` and must stay *strictly*
 descending — two levels at the same weight make the beat and the "&" read alike, which is the whole
@@ -119,6 +128,11 @@ the bar's left edge (highlights, tie segments) still uses `x0`.
 `labelSize` deliberately equals `rulerSize`: the bar numbers down the side and the beat numbers
 along the top are one labelling system, and the bar number is not bolded.
 
+The bar number is end-anchored at `row.labelX`, which sits `labelGap` back from the bar's left edge
+so the gutter reads as its own column rather than the number crowding beat 1. It is a layout value,
+not a nudge in `Score.tsx`: the export renders the same component, so an offset applied at the
+render site would be one more thing that could drift from the geometry.
+
 `row.labelY` centres the bar number on the **beat notch's vertical run** (`y - notchH[0] / 2`), not
 on the row block. It must not be derived from `top`/`bottom`, which move with the lyric size — the
 number would then drift away from the downbeat it labels.
@@ -135,7 +149,13 @@ compatible, and breaking either silently corrupts exports:
 1. **Every visual property is a presentation attribute, never a CSS class.** A serialized clone gets
    no stylesheet from the host page.
 2. **Anything editing-only carries `data-editor-only`** — hit targets, cursor ring, selection
-   outline, drag preview. `exportImage.ts` strips those before serializing.
+   outline, drag preview, backdrop. `exportImage.ts` strips those before serializing.
+
+The backdrop — a transparent full-size rect that drops the selection when clicked — must stay the
+**first** child. SVG has no z-index; painting order is document order, so anywhere else it would
+swallow the clicks meant for the hit targets and the text. It also ignores points inside a bar's
+block (`onGrid`), because a bar owns strips that no hit target covers — past the last notch — and
+clicking those is not clicking off the grid.
 
 No `foreignObject`: it does not survive rasterisation. That is why text editing uses an HTML
 `<input>` positioned over the SVG in `App.tsx` rather than an editable element inside it.

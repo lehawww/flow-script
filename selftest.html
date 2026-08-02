@@ -19,6 +19,7 @@
       import {
         coerceSong, newSong, makeBar, allSlotRefs, slotKey, headerLine, NOTCH_LEVELS,
         comparePos, normalizeRange, MIN_LYRIC_SIZE, MAX_LYRIC_SIZE, MIN_BEAT_WIDTH, MAX_BEAT_WIDTH, MIN_ROW_GAP, MAX_ROW_GAP,
+        DEFAULT_ROW_GAP,
       } from '/src/model.ts'
       import { computeLayout, slotAtX, slotStartX, slotEndX } from '/src/layout.ts'
       import {
@@ -397,7 +398,9 @@
         b.rowGap = 100
         const la = computeLayout(a, 1)
         const lb = computeLayout(b, 1)
-        return lb.rowPitch - la.rowPitch === 100 - a.rowGap ? true : `${la.rowPitch} -> ${lb.rowPitch}`
+        return Math.abs(lb.rowPitch - la.rowPitch - (100 - a.rowGap)) < 0.001
+          ? true
+          : `${la.rowPitch} -> ${lb.rowPitch}`
       })
 
       check('zero padding is allowed and puts bars flush', () => {
@@ -407,6 +410,56 @@
         return Math.abs(l.bars[1].top - l.bars[0].bottom) < 0.001 ? true : 'not flush'
       })
 
+      /* ---- phrase highlight band ---- */
+
+      check('the row block holds equal air above and below its ink', () => {
+        // A phrase highlight fills the row block, so any asymmetry here shows up
+        // as a slab of colour on one side of the marks — it used to run far past
+        // the lyrics. Equal air is what makes the highlight read as centred.
+        for (const size of [MIN_LYRIC_SIZE, 15, MAX_LYRIC_SIZE]) {
+          const s = newSong(1)
+          s.lyricSize = size
+          const l = computeLayout(s, 1)
+          const r = l.bars[0]
+          const m = l.m
+          const inkTop = r.y - Math.max(m.notchH[0], m.rLarge + m.circleStroke)
+          const inkBottom = r.textY + m.textSize * 0.26 // descender, per layout.ts
+          const above = inkTop - r.top
+          const below = r.bottom - inkBottom
+          if (Math.abs(above - below) > 0.001) return `at ${size}: above ${above}, below ${below}`
+        }
+        return true
+      })
+
+      check('the row block covers every mark it sits behind', () => {
+        for (const size of [MIN_LYRIC_SIZE, 15, MAX_LYRIC_SIZE]) {
+          const s = newSong(1)
+          s.lyricSize = size
+          const l = computeLayout(s, 1)
+          const r = l.bars[0]
+          if (r.top > r.y - l.m.notchH[0]) return `clips the beat notch at ${size}`
+          if (r.top > r.y - l.m.rLarge) return `clips a large circle at ${size}`
+          if (r.bottom < r.textY) return `clips the lyric at ${size}`
+        }
+        return true
+      })
+
+      check('phrase highlights meet flush across bars at zero padding', () => {
+        // A bar-spanning highlight is one rect per row; a gap between the rows
+        // would break it into stripes.
+        for (const size of [MIN_LYRIC_SIZE, 15, MAX_LYRIC_SIZE]) {
+          const s = newSong(3)
+          s.lyricSize = size
+          s.rowGap = 0
+          const l = computeLayout(s, 1)
+          for (let i = 1; i < l.bars.length; i++) {
+            const gap = l.bars[i].top - l.bars[i - 1].bottom
+            if (Math.abs(gap) > 0.001) return `gap of ${gap} at ${size}`
+          }
+        }
+        return true
+      })
+
       check('padding round trips and is clamped on load', () => {
         const s = newSong(1)
         s.rowGap = 44
@@ -414,9 +467,17 @@
         return coerceSong(raw).rowGap === 44 &&
           coerceSong({ ...raw, rowGap: -5 }).rowGap === MIN_ROW_GAP &&
           coerceSong({ ...raw, rowGap: 9999 }).rowGap === MAX_ROW_GAP &&
-          coerceSong({ ...raw, rowGap: undefined }).rowGap === 20
+          coerceSong({ ...raw, rowGap: undefined }).rowGap === DEFAULT_ROW_GAP
           ? true
           : 'not clamped'
+      })
+
+      check('new songs default to no vertical padding', () => {
+        // Bars sit flush unless the user asks for air, so a fresh song is dense.
+        const s = newSong(2)
+        if (s.rowGap !== 0) return `rowGap ${s.rowGap}`
+        const l = computeLayout(s, 1)
+        return Math.abs(l.bars[1].top - l.bars[0].bottom) < 0.001 ? true : 'not flush'
       })
 
       /* ---- ruler label toggle ---- */
@@ -500,6 +561,17 @@
         })
           ? true
           : 'label not centred on the notch'
+      })
+
+      check('the bar label sits out in the gutter, clear of beat 1', () => {
+        // End-anchored, so labelX is the number's right edge: it has to leave
+        // real space before the bar starts and still land inside the gutter.
+        const l = computeLayout(newSong(2), 1)
+        const r = l.bars[0]
+        const gap = l.x0 - r.labelX
+        return gap >= l.m.gutter * 0.3 && r.labelX > l.m.padX
+          ? true
+          : `labelX ${r.labelX}, gap ${gap}, gutter ${l.m.gutter}`
       })
 
       check('the label stays on the notch when lyrics get taller', () => {
