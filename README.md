@@ -144,7 +144,7 @@ syllable you're marking as rhyming is a syllable that's there.
 The swatch rows always mark the colors of the syllable at the cursor, so moving along a line shows
 you what each circle is already wearing rather than what you last pressed.
 
-## Two rhymes on one syllable
+### Two rhymes on one syllable
 
 Rhymes overlap: the syllable that ends one multi-syllabic rhyme can be the syllable that starts the next. The
 toolbar's **2nd** row — the striped swatches under **Rhyme** — puts a second color on the circle at
@@ -188,7 +188,7 @@ it — which is the quick way to recolor a whole verse if a scheme isn't reading
 If you settle on a scheme you like, **Save as default for new songs** keeps it for future work. That
 preference lives in your browser and is not part of any file you share.
 
-## Adding bars, undoing, zooming
+### Adding bars, undoing, zooming
 
 New songs start with four bars. The **Bars** buttons in the toolbar add and remove them:
 
