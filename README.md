@@ -1,13 +1,13 @@
 # FlowScript
 
-**A tool for notating rap flow on a beat ruler.** Place lyrics, one syllable per metric position,
-and then have options to annotate stress, rhyme, and phrase structure. Export the result as a
-publication-quality image.
+**A tool for notating rap flow on a beat ruler** 
+Place lyrics on the grid, one syllable per metric position, with options for notating stress, rhyme, 
+and phrase structure. The grid is also customizable to support several different beat divisions. 
+Export the result as a publication-quality image.
 
 ### **[▶ Open FlowScript](https://lehawww.github.io/flow-script/)**
 
-Created by **Leah Amarosa, PhD candidate** (Music Theory), for music theorists documenting flow for
-transcription and analysis.
+Created by **Leah Amarosa, PhD candidate** (Music Theory) to transcribe rap flow for analytical work.
 
 Nothing to install and nothing to sign up for. It runs entirely in your browser, and your work stays
 on your own computer.
@@ -27,40 +27,38 @@ bands mark phrase structure.*
 
 ## What it does
 
-FlowScript gives you a bar-and-beat grid and three layers of annotation over it:
+FlowScript gives you a bar-and-beat grid for syllable placement, plus an additional three layers of annotation:
 
-**Syllable placement.** Type one syllable per metric position. Positions you don't use stay empty,
-so rests and held syllables read correctly.
+**Syllable placement** Type one syllable per metric position. Positions you don't use stay empty, so rests and 
+held syllables read correctly.
 
-**Stress.** A large circle marks a stressed syllable, a small circle an unstressed one, centred on
+**Stress** A large circle marks a stressed syllable, a small circle an unstressed one, centered on
 the notch it lands on. Positions can also carry no circle at all.
 
-**Rhyme.** The circle's fill color, from an editable 16-color palette. Matching circles can be
-joined by a thick tie along the baseline, which may run across a bar line — useful for
-multisyllabic rhymes that straddle the barline. A circle can carry a **second** color as diagonal
-stripes, for a syllable two rhymes share: in "drop it in the pocket", *drop* and *it* belong both to
-the earlier rhyme and to the new multi built on *pock-et*.
+**Rhyme** The circle's fill color, from an editable 16-color palette. Matching circles can be
+joined by a thick tie along the baseline, which may run across a bar line—useful for multisyllabic 
+rhymes that straddle the barline. A circle can carry a **second** color as diagonal stripes, for a 
+syllable two rhymes share: in the above example, *drop* and *pock-* belong both to the earlier rhyme 
+scheme and to the new disyllabic pair, *drop it* and *pocket*.
 
-**Phrase structure.** A background highlight over a range of positions. Highlights select at
-subdivision resolution and may span bars, so a phrase can begin on the "e" of one beat and end on
+**Phrase structure** A background highlight over a range of positions. Highlighter can be dragged to
+cover any subdivision and may span bars, so a phrase can begin on the "e" of one line and end on
 the "&" of another.
 
-The ruler itself is flexible. Any number of beats per bar, and **division is set per beat**, so a
-single bar can put a triplet against surrounding 16ths. A beat can also be **split at its half**,
-with each half divided on its own — a triplet across the first 8th and straight 16ths across the
-second, and the three other pairings. Notch height and stroke weight follow metric depth, so the "&"
-of a beat reads taller and heavier than the "e" and the "a" — the hierarchy is visible at a glance
-rather than something you have to count out.
+The ruler itself is flexible. You can change the number of beats per bar, and **division is set per beat**, 
+so a single bar can have triplets while there are 16th-notes in the beats surrounding it. A beat can also be 
+**split at its half**, with each half divided on its own — a triplet across the first 8th and straight 16ths 
+across the second. Notch height and stroke weight follow metric depth, so the "&" of a beat reads taller and 
+heavier than the "e" and the "a."
 
 ## Getting started
 
-Open **<https://lehawww.github.io/flow-script/>**. That's it — there is no installation, account, or
-setup step. You'll get an empty four-bar ruler ready to type into.
+Open **<https://lehawww.github.io/flow-script/>**. No installation, account, or setup step. You'll get an empty 
+four-bar ruler ready to type into. You will be able to locally save your diagram in a variety of formats
 
-![The FlowScript editor in Annotate mode: file, export and zoom controls along the top, then the
-mode buttons with the stress controls, the 16-color Rhyme palette and the striped second-color row
-beneath them, the annotated four-bar score filling the rest of the window, and the keyboard hints
-along the bottom.](docs/editor.png)
+![The FlowScript editor in Annotate mode: file, export and zoom controls along the top, then buttons for syllable
+accentuation (circles), the 16-color Rhyme palette and the striped second-color row beneath them, the annotated 
+four-bar score filling the rest of the window, and the keyboard shortcuts along the bottom.](docs/editor.png)
 
 The toolbar holds file and export actions along the top, and the current mode's tools below. Press
 **Keys ?** at any time for the complete keyboard reference.
