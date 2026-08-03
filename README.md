@@ -1,12 +1,12 @@
 # FlowScript
 
-**A tool for notating rap flow on a beat ruler.** Place lyrics one syllable per metric position,
-then annotate stress, rhyme and phrase structure over that grid — and export the result as a
+**A tool for notating rap flow on a beat ruler.** Place lyrics, one syllable per metric position,
+and then have options to annotate stress, rhyme, and phrase structure. Export the result as a
 publication-quality image.
 
 ### **[▶ Open FlowScript](https://lehawww.github.io/flow-script/)**
 
-Created by **Leah Amarosa, PhD** (Music Theory), for music theorists documenting flow in
+Created by **Leah Amarosa, PhD candidate** (Music Theory), for music theorists documenting flow for
 transcription and analysis.
 
 Nothing to install and nothing to sign up for. It runs entirely in your browser, and your work stays
