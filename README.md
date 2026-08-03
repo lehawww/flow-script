@@ -103,24 +103,6 @@ beat will run long syllables into their neighbours, since a 16th only owns a qua
 **Bars never wrap to the window.** The view scrolls sideways instead, so what you see on screen is
 exactly what gets exported — no surprises between the editor and the finished figure.
 
-## Adding bars, undoing, zooming
-
-New songs start with four bars. The **Bars** buttons in the toolbar add and remove them:
-
-| Button | Does |
-|---|---|
-| **+ end** (or `Ctrl/⌘ Enter`) | add a bar at the end of the song |
-| **+ here** | insert a bar before the one you're in |
-| **duplicate** | copy the current bar, with its annotations, directly after it |
-| **delete** | remove the current bar |
-
-`Ctrl/⌘ Z` undoes and `Ctrl/⌘ Shift Z` redoes, throughout. Related edits collapse into one step, so
-dragging a color picker or typing a caption undoes as a single action rather than character by
-character.
-
-The **Zoom** slider changes only how large the score appears while you work. It has no effect on the
-document or on anything you export.
-
 ### 2. Text — type in the syllables
 
 Press `Ctrl/⌘ 1`. Type a syllable, then:
@@ -205,6 +187,24 @@ it — which is the quick way to recolor a whole verse if a scheme isn't reading
 
 If you settle on a scheme you like, **Save as default for new songs** keeps it for future work. That
 preference lives in your browser and is not part of any file you share.
+
+## Adding bars, undoing, zooming
+
+New songs start with four bars. The **Bars** buttons in the toolbar add and remove them:
+
+| Button | Does |
+|---|---|
+| **+ end** (or `Ctrl/⌘ Enter`) | add a bar at the end of the song |
+| **+ here** | insert a bar before the one you're in |
+| **duplicate** | copy the current bar, with its annotations, directly after it |
+| **delete** | remove the current bar |
+
+`Ctrl/⌘ Z` undoes and `Ctrl/⌘ Shift Z` redoes, throughout. Related edits collapse into one step, so
+dragging a color picker or typing a caption undoes as a single action rather than character by
+character.
+
+The **Zoom** slider changes only how large the score appears while you work. It has no effect on the
+document or on anything you export.
 
 ### Saving your work
 
