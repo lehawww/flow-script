@@ -12,12 +12,12 @@ Created by **Leah Amarosa, PhD candidate** (Music Theory) to transcribe rap flow
 Nothing to install and nothing to sign up for. It runs entirely in your browser, and your work stays
 on your own computer.
 
-![A four-bar verse notated in FlowScript: syllables placed on a 16th-note grid, large and small
-circles marking stressed and unstressed syllables, colored circles joined by ties showing rhyme,
+![A four-bar verse notated in FlowScript: syllables placed on a grid, large and small
+circles marking stressed and unstressed syllables, colored circles joined by thick lines showing rhyme,
 four syllables striped in a second color where two rhymes overlap, and four phrase bands behind the
 score, two of which carry across a bar line.](docs/example.png)
 
-*An exported figure. Circle size shows stress, circle color shows rhyme — tied pairs are
+*An exported figure. Circle size shows stress, circle color shows rhyme — connected lines show
 multisyllabic rhymes, and a striped circle is a syllable two rhymes share — while the background
 bands mark phrase structure.*
 
@@ -45,122 +45,33 @@ scheme and to the new disyllabic pair, *drop it* and *pocket*.
 cover any subdivision and may span bars, so a phrase can begin on the "e" of one line and end on
 the "&" of another.
 
-The ruler itself is flexible. You can change the number of beats per bar, and **division is set per beat**, 
-so a single bar can have triplets while there are 16th-notes in the beats surrounding it. A beat can also be 
-**split at its half**, with each half divided on its own — a triplet across the first 8th and straight 16ths 
-across the second. Notch height and stroke weight follow metric depth, so the "&" of a beat reads taller and 
-heavier than the "e" and the "a."
+**Bar and beat divisions** The ruler itself is flexible. You can change the number of beats per bar, 
+and **division is set per beat**, so a single bar can have triplets while there are 16th-notes in the 
+beats surrounding it. A beat can also be **split at its half**, with each half divided differently (such 
+as a triplet across the first 8th and straight 16ths across the second). Notch height and stroke weight 
+follow metric depth, so the "&" of a beat reads taller and heavier than the "e" and the "a."
 
 ## Getting started
 
 Open **<https://lehawww.github.io/flow-script/>**. No installation, account, or setup step. You'll get an empty 
-four-bar ruler ready to type into. You will be able to locally save your diagram in a variety of formats
+four-bar ruler ready to type into. You will be able to locally save your diagram in a variety of formats.
 
-![The FlowScript editor in Annotate mode: file, export and zoom controls along the top, then buttons for syllable
-accentuation (circles), the 16-color Rhyme palette and the striped second-color row beneath them, the annotated 
-four-bar score filling the rest of the window, and the keyboard shortcuts along the bottom.](docs/editor.png)
+![The FlowScript editor in Annotate mode: file, export and zoom controls along the top. Top right has song settings,
+color customization, and keyboard shortcuts. The next line has buttons for inputting text, annotations, phrases, 
+and changing the bar and beat divisions. By clicking on "annotate," you will find syllable accentuation (circles) 
+and the 16-color Rhyme palette (and the striped second-color row beneath them). The grid fills the rest of the window, 
+and location and keyboard shortcuts can be found along the bottom](docs/editor.png)
 
-The toolbar holds file and export actions along the top, and the current mode's tools below. Press
-**Keys ?** at any time for the complete keyboard reference.
+Press **Keys ?** at any time for the complete keyboard shortcut reference guide.
 
-## How you work: three passes
+## How you work
 
-FlowScript is built for annotating a whole verse one concern at a time, rather than finishing one
-syllable completely before moving to the next. Each mode is a pass over the material.
+FlowScript is built for annotating a whole verse one element at a time, rather than finishing one
+syllable completely before moving to the next. Each annotation option is a pass over the material.
 
-### 1. Text — lay in the syllables
+### 1. Setting up the ruler
 
-Press `Ctrl/⌘ 1`. Type a syllable, then:
-
-| Key | Does |
-|---|---|
-| `Space` | commit and move to the next position |
-| `Enter` | commit and drop to the next bar |
-| `Backspace` on an empty slot | step back |
-| `←` `→` | move a position at a time |
-| `↑` `↓` | same position, previous/next bar |
-| `Home` / `End` | first/last position in the bar |
-
-Skip past any position that has no syllable. If two syllables end up crowding each other, drag
-either one to nudge it off centre; the nudge is saved with the song.
-
-### 2. Annotate — stress and rhyme
-
-Press `Ctrl/⌘ 2`.
-
-| Key | Does |
-|---|---|
-| `A` | stressed (large circle), then advance |
-| `S` | unstressed (small circle), then advance |
-| `D` | clear the circle, then advance |
-| `Shift` + `A`/`S`/`D` | the same, without advancing |
-| `1`–`9`, `0`, then `Shift`+`1`–`5` | apply rhyme colors 2–16 |
-| `` ` `` | reset to the default grey |
-| `Alt` + any color key | add that color as a *second* rhyme; again removes it |
-| `Q` | tie this circle to the next one |
-| `Backspace` | clear everything at this position |
-
-Because `A`, `S` and `D` advance on their own, you can sweep a full bar of stress marks in one run
-of keystrokes without reaching for the mouse.
-
-Applying a color to a position that has no circle gives it a large one, on the assumption that a
-syllable you're marking as rhyming is a syllable that's there.
-
-The swatch rows always mark the colors of the syllable at the cursor, so moving along a line shows
-you what each circle is already wearing rather than what you last pressed.
-
-### Two rhymes on one syllable
-
-Rhymes overlap: the syllable that ends one multi is often the syllable that starts the next. The
-toolbar's **2nd** row — the striped swatches under **Rhyme** — puts a second color on the circle at
-the cursor, drawn as diagonal stripes over the first. Picking the same color again takes it off, as
-does the `⌫` at the end of that row; a plain color key sets one solid color again.
-
-So in "drop it in the pocket", *drop* and *it* keep the earlier rhyme's color and pick up a stripe
-of the new one, while *pock-* and *et* carry the same pair — the shared syllables are visible as
-shared rather than reassigned to whichever rhyme you marked last.
-
-Pick the stripe from the **dark** end of the palette — Indigo, Crimson, Forest and Plum, the four
-before White. Two pastels striped together average out into a single muddy tint; a dark against a
-pastel stays readable as two colors at the size a circle actually gets printed.
-
-### 3. Phrase — structure
-
-Press `Ctrl/⌘ 3`, then drag across the score to lay a highlight.
-
-| Key | Does |
-|---|---|
-| `1`–`8` | choose the highlight color, or recolor the one you have selected |
-| `0` | eraser — drag over highlights to remove them |
-| `Delete` | remove the highlight you have selected |
-
-Click a highlight to select it. Drags snap to the subdivision grid, so a highlight starts and ends
-exactly where a syllable does.
-
-The swatch strip marks the selected highlight's own color, so you can see what a band is without
-guessing, and picking another color recolors it in place.
-
-## Adding bars, undoing, zooming
-
-New songs start with four bars. The **Bars** buttons in the toolbar add and remove them:
-
-| Button | Does |
-|---|---|
-| **+ end** (or `Ctrl/⌘ Enter`) | add a bar at the end of the song |
-| **+ here** | insert a bar before the one you're in |
-| **duplicate** | copy the current bar, with its annotations, directly after it |
-| **delete** | remove the current bar |
-
-`Ctrl/⌘ Z` undoes and `Ctrl/⌘ Shift Z` redoes, throughout. Related edits collapse into one step, so
-dragging a color picker or typing a caption undoes as a single action rather than character by
-character.
-
-The **Zoom** slider changes only how large the score appears while you work. It has no effect on the
-document or on anything you export.
-
-## Setting up the ruler
-
-Open **Song settings** in the toolbar.
+Open **Song settings** in the toolbar. These can be changed at any time.
 
 - **Caption** — verse number, song title, artist, year and time-stamp. These render as a heading
   above the score in exports, in the form *Verse 2, "Song Title," Artist (1994), 1:04*.
@@ -192,7 +103,93 @@ beat will run long syllables into their neighbours, since a 16th only owns a qua
 **Bars never wrap to the window.** The view scrolls sideways instead, so what you see on screen is
 exactly what gets exported — no surprises between the editor and the finished figure.
 
-## Colors
+## Adding bars, undoing, zooming
+
+New songs start with four bars. The **Bars** buttons in the toolbar add and remove them:
+
+| Button | Does |
+|---|---|
+| **+ end** (or `Ctrl/⌘ Enter`) | add a bar at the end of the song |
+| **+ here** | insert a bar before the one you're in |
+| **duplicate** | copy the current bar, with its annotations, directly after it |
+| **delete** | remove the current bar |
+
+`Ctrl/⌘ Z` undoes and `Ctrl/⌘ Shift Z` redoes, throughout. Related edits collapse into one step, so
+dragging a color picker or typing a caption undoes as a single action rather than character by
+character.
+
+The **Zoom** slider changes only how large the score appears while you work. It has no effect on the
+document or on anything you export.
+
+### 2. Text — lay in the syllables
+
+Press `Ctrl/⌘ 1`. Type a syllable, then:
+
+| Key | Does |
+|---|---|
+| `Space` | commit and move to the next position |
+| `Enter` | commit and drop to the next bar |
+| `Backspace` on an empty slot | step back |
+| `←` `→` | move a position at a time |
+| `↑` `↓` | same position, previous/next bar |
+| `Home` / `End` | first/last position in the bar |
+
+Skip past any position that has no syllable. If two syllables end up crowding each other, drag
+either one to nudge it off centre; the nudge is saved with the song.
+
+### 3. Annotate — stress and rhyme
+
+Press `Ctrl/⌘ 2`.
+
+| Key | Does |
+|---|---|
+| `A` | stressed (large circle), then advance |
+| `S` | unstressed (small circle), then advance |
+| `D` | clear the circle, then advance |
+| `Shift` + `A`/`S`/`D` | the same, without advancing |
+| `1`–`9`, `0`, then `Shift`+`1`–`5` | apply rhyme colors 2–16 |
+| `` ` `` | reset to the default grey |
+| `Alt` + any color key | add that color as a *second* rhyme; again removes it |
+| `Q` | tie this circle to the next one |
+| `Backspace` | clear everything at this position |
+
+Because `A`, `S` and `D` advance on their own, you can sweep a full bar of stress marks in one run
+of keystrokes without reaching for the mouse.
+
+Applying a color to a position that has no circle gives it a large one, on the assumption that a
+syllable you're marking as rhyming is a syllable that's there.
+
+The swatch rows always mark the colors of the syllable at the cursor, so moving along a line shows
+you what each circle is already wearing rather than what you last pressed.
+
+## Two rhymes on one syllable
+
+Rhymes overlap: the syllable that ends one multi-syllabic rhyme can be the syllable that starts the next. The
+toolbar's **2nd** row — the striped swatches under **Rhyme** — puts a second color on the circle at
+the cursor, drawn as diagonal stripes over the first. Picking the same color again takes it off, as
+does the `⌫` at the end of that row; a plain color key sets one solid color again.
+
+Pick the stripe from the **dark** end of the palette — Indigo, Crimson, Forest and Plum, the four
+before White. Two pastels striped together average out into a single muddy tint; a dark against a
+pastel stays readable as two colors at the size a circle actually gets printed.
+
+### 4. Phrase structure
+
+Press `Ctrl/⌘ 3`, then drag across the score to lay a highlight.
+
+| Key | Does |
+|---|---|
+| `1`–`8` | choose the highlight color, or recolor the one you have selected |
+| `0` | eraser — drag over highlights to remove them |
+| `Delete` | remove the highlight you have selected |
+
+Click a highlight to select it. Drags snap to the subdivision grid, so a highlight starts and ends
+exactly where a syllable does.
+
+The swatch strip marks the selected highlight's own color, so you can see what a band is without
+guessing, and picking another color recolors it in place.
+
+### Colors
 
 Press **Colors** in the toolbar to edit either palette: 16 rhyme colors and 8 phrase colors, each
 with a color picker and a hex field.
@@ -209,13 +206,13 @@ it — which is the quick way to recolor a whole verse if a scheme isn't reading
 If you settle on a scheme you like, **Save as default for new songs** keeps it for future work. That
 preference lives in your browser and is not part of any file you share.
 
-## Saving your work
+### Saving your work
 
 One song is one `.flowscript.json` file on your computer.
 
 **Save** / **Open** use your browser's normal file dialog. In Chrome and Edge, Save writes back to
 the same file in place, the way a desktop application would. In Firefox and Safari, Save downloads a
-fresh copy instead — the work is identical, you just manage the files yourself.
+fresh copy instead; you just manage the files yourself.
 
 Opening a file repairs anything partial or out of date rather than refusing it, so songs made with
 earlier versions keep working.
@@ -223,7 +220,7 @@ earlier versions keep working.
 To share an editable song with a colleague, send them the `.flowscript.json` file; they open it with
 **Open**.
 
-## Exporting figures
+### Exporting figures
 
 - **Export PNG** at 1× to 8×. **3× is a good default for print**; 8× is generous for a large figure.
 - **SVG** for a vector file you can scale losslessly or edit in Illustrator or Inkscape.
@@ -239,11 +236,10 @@ it was put together.
 
 ## Your work is private
 
-FlowScript makes no network requests. There is no account, no server, no analytics, and no telemetry
-of any kind. Songs are files on your own machine and are never uploaded anywhere. Once the page has
-loaded you can disconnect from the internet entirely and keep working.
-
-This matters for unpublished analysis and for material you don't hold the rights to redistribute.
+FlowScript makes no network requests. There is no account, no server, and no analytics of any kind. 
+Songs are files on your own machine and are never uploaded anywhere. Once the page has loaded you can 
+disconnect from the internet entirely and keep working. This matters for unpublished analysis and for 
+material you don't hold the rights to redistribute.
 
 ## Working offline, or sharing the tool itself
 
