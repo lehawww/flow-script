@@ -1,6 +1,6 @@
 # FlowScript
 
-**A tool for notating rap flow on a beat ruler** 
+**A tool for notating rap flow on a beat ruler.** 
 Place lyrics on the grid, one syllable per metric position, with options for notating stress, rhyme, 
 and phrase structure. The grid is also customizable to support several different beat divisions. 
 Export the result as a publication-quality image.
@@ -29,23 +29,23 @@ bands mark phrase structure.*
 
 FlowScript gives you a bar-and-beat grid for syllable placement, plus an additional three layers of annotation:
 
-**Syllable placement** Type one syllable per metric position. Positions you don't use stay empty, so rests and 
+**Syllable placement.** Type one syllable per metric position. Positions you don't use stay empty, so rests and 
 held syllables read correctly.
 
-**Stress** A large circle marks a stressed syllable, a small circle an unstressed one, centered on
+**Stress.** A large circle marks a stressed syllable, a small circle an unstressed one, centered on
 the notch it lands on. Positions can also carry no circle at all.
 
-**Rhyme** The circle's fill color, from an editable 16-color palette. Matching circles can be
+**Rhyme.** The circle's fill color, from an editable 16-color palette. Matching circles can be
 joined by a thick tie along the baseline, which may run across a bar line—useful for multisyllabic 
 rhymes that straddle the barline. A circle can carry a **second** color as diagonal stripes, for a 
 syllable two rhymes share: in the above example, *drop* and *pock-* belong both to the earlier rhyme 
 scheme and to the new disyllabic pair, *drop it* and *pocket*.
 
-**Phrase structure** A background highlight over a range of positions. Highlighter can be dragged to
+**Phrase structure.** A background highlight over a range of positions. Highlighter can be dragged to
 cover any subdivision and may span bars, so a phrase can begin on the "e" of one line and end on
 the "&" of another.
 
-**Bar and beat divisions** The ruler itself is flexible. You can change the number of beats per bar, 
+**Bar and beat divisions.** The ruler itself is flexible. You can change the number of beats per bar, 
 and **division is set per beat**, so a single bar can have triplets while there are 16th-notes in the 
 beats surrounding it. A beat can also be **split at its half**, with each half divided differently (such 
 as a triplet across the first 8th and straight 16ths across the second). Notch height and stroke weight 
@@ -121,7 +121,7 @@ character.
 The **Zoom** slider changes only how large the score appears while you work. It has no effect on the
 document or on anything you export.
 
-### 2. Text — lay in the syllables
+### 2. Text — type in the syllables
 
 Press `Ctrl/⌘ 1`. Type a syllable, then:
 
